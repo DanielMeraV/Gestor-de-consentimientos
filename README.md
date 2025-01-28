@@ -4,4 +4,4 @@ Proyecto para la materia de Software Seguro de la Escuela Politécnica Nacional,
 
 Sistema de gestión de consentimientos desarrollado con Node.js para el backend y una base de datos en sql server.
 
-Puedes ver el script completo en el archivo [proyecto IIB db script.sql](./proyecto IIB db script.sql).
+Puedes ver el script completo en el archivo [proyecto IIB db script.sql](./proyecto%20IIB%20db%20script.sql).
