@@ -3,8 +3,8 @@ const { Sequelize } = require('sequelize');
 require('dotenv').config();
 
 // Crear instancia de Sequelize
-const sequelize = new Sequelize(
-    process.env.DB_DATABASE, 
+const sequelizeAudit = new Sequelize(
+    process.env.DB_AUDIT_DATABASE, 
     process.env.DB_USER,     
     process.env.DB_PASSWORD, 
     {
@@ -27,10 +27,10 @@ const sequelize = new Sequelize(
 );
 
 // Función para probar la conexión
-async function testConnection() {
+async function testConnectionAudit() {
     try {
-        await sequelize.authenticate();
-        console.log('Conexión a la base de datos principal establecida correctamente.');
+        await sequelizeAudit.authenticate();
+        console.log('Conexión a la base de datos de auditoria establecida correctamente.');
         return true;
     } catch (error) {
         console.error('No se pudo conectar a la base de datos:', error);
@@ -39,6 +39,6 @@ async function testConnection() {
 }
 
 module.exports = {
-    sequelize,
-    testConnection
+    sequelizeAudit,
+    testConnectionAudit
 };
