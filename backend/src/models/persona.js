@@ -70,6 +70,17 @@ const PersonaSchema = {
         type: DataTypes.BLOB,
         allowNull: false,
         field: 'Password',
+    },
+    IntentosLogin: {
+        type: DataTypes.INTEGER,
+        allowNull: false,
+        defaultValue: 0,
+        field: 'IntentosLogin'
+    },
+    BloqueoHasta: {
+        type: DataTypes.DATE,
+        allowNull: true,
+        field: 'BloqueoHasta'
     }
 
 };
