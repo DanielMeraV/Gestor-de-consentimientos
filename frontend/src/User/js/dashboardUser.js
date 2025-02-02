@@ -1,6 +1,6 @@
 // Variables globales
 const API_URL = 'http://localhost:3000/api';
-const USUARIO_ID = 3; // Asegúrate de que sea el mismo ID en todas partes
+const USUARIO_ID = 1; // Asegúrate de que sea el mismo ID en todas partes
 
 const formatDate = (dateString) => {
     return new Date(dateString).toLocaleDateString('es-ES');

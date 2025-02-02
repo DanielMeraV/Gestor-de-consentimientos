@@ -12,8 +12,8 @@ document.addEventListener('DOMContentLoaded', () => {
     );
 
     document.getElementById('btnLogin')?.addEventListener('click', () => 
-        //window.location.href = './src/User/dashboardUser.html'
-        window.location.href = './src/dashboardAdmin.html'
+        window.location.href = './src/User/dashboardUser.html'
+        //window.location.href = './src/dashboardAdmin.html'
     );
 
     // Cerrar menú móvil

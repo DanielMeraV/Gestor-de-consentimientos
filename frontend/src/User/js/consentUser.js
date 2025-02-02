@@ -1,6 +1,6 @@
 // Variables globales
 const API_URL = 'http://localhost:3000/api';
-const USUARIO_ID = 3; // Asegúrate de que sea el ID correcto
+const USUARIO_ID = 1; // Asegúrate de que sea el ID correcto
 
 async function cargarConsentimientosUsuario() {
     try {
