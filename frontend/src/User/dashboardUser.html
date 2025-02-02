@@ -1,0 +1,83 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dashboard Usuario - BancoDigital</title>
+    <link rel="stylesheet" href="./styles/dashboardUser.css">
+</head>
+<body>
+    <div class="container">
+        <!-- Sidebar -->
+        <div class="sidebar">
+            <div class="profile">
+                <img src="./images/User.png" alt="Profile" class="profile-img">
+                <h3 id="userName">Nombre Usuario</h3>
+            </div>
+            <ul class="nav-menu">
+                <li class="nav-item">Ley de protección de datos personales ecuador </li>
+            </ul>
+        </div>
+
+        <!-- Main Content -->
+        <div class="main-content">
+            <div class="header">
+                <h1>Mi Dashboard</h1>
+                <div class="action-buttons">
+                    <button class="btn" onclick="window.location.href='consentUser.html'">Gestionar Consentimientos</button>
+                    <button class="btn" onclick="window.location.href='../../index.html'">Editar Información</button>
+                </div>
+            </div>
+
+            <!-- Tarjetas bancarias -->
+            <div class="cards-section">
+                <div class="bank-card">
+                    <h3>Tarjeta Débito</h3>
+                    <div class="card-number">**** **** **** 1234</div>
+                    <div class="card-info">
+                        <span id="cardHolder">NOMBRE TITULAR</span>
+                        <span>12/25</span>
+                    </div>
+                </div>
+
+                <div class="bank-card">
+                    <h3>Tarjeta Crédito</h3>
+                    <div class="card-number">**** **** **** 5678</div>
+                    <div class="card-info">
+                        <span id="cardHolder">NOMBRE TITULAR</span>
+                        <span>12/25</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Información del Usuario -->
+            <div class="card">
+                <h2>Información Personal</h2>
+                <div id="userInfo">
+                    <!-- Se llenará con JavaScript -->
+                </div>
+            </div>
+            <br>
+            <!-- Consentimientos del Usuario -->
+            <div class="card">
+                <h2>Mis Consentimientos</h2>
+                <table class="consent-table">
+                    <thead>
+                        <tr>
+                            <th>Tipo de Consentimiento</th>
+                            <th>Estado</th>
+                            <th>Fecha</th>
+                            <th>Versión</th>
+                        </tr>
+                    </thead>
+                    <tbody id="consentimientosTable">
+                        <!-- Se llenará con JavaScript -->
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <script src="./js/dashboardUser.js"></script>
+</body>
+</html>

@@ -1,4 +1,5 @@
 const express = require('express');
+const cors = require('cors');
 require('dotenv').config();
 const { initializeModels } = require('./models');
 const { testConnection } = require('./config/database');
@@ -14,6 +15,14 @@ const auditoriaConsentimientoRoutes = require('./routes/auditoriaConsentimientoR
 
 const app = express();
 
+// Configuración de CORS
+app.use(cors({
+    origin: 'http://localhost:5173', // URL de tu frontend
+    methods: ['GET', 'POST', 'PUT', 'DELETE'],
+    credentials: true,
+    allowedHeaders: ['Content-Type', 'Authorization']
+}));
+
 // Middleware básico
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
@@ -24,7 +33,9 @@ app.use('/api/personas', personaRoutes);
 app.use('/api/registros-consentimiento', registroConsentimientoRoutes);
 app.use('/api/auditoria-personas', auditoriaPersonaRoutes);
 app.use('/api/auditoria-consentimientos', auditoriaConsentimientoRoutes);
-
+app.use(cors({
+    origin: 'http://localhost:5173' // El puerto donde corre tu frontend
+}));
 // Puerto
 const PORT = process.env.PORT || 3000;
 
