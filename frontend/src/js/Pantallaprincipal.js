@@ -8,11 +8,11 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // Botones de registro e inicio de sesión
     document.getElementById('btnRegistro')?.addEventListener('click', () => 
-        window.location.href = './src/consent.html'
+        window.location.href = './src/views/auth/lopd.html'
     );
 
     document.getElementById('btnLogin')?.addEventListener('click', () => 
-        window.location.href = './src/consent.html'
+        window.location.href = './src/views/auth/login.html'
     );
 
     // Cerrar menú móvil
