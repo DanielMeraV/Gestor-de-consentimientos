@@ -12,7 +12,7 @@ document.addEventListener('DOMContentLoaded', () => {
     );
 
     document.getElementById('btnLogin')?.addEventListener('click', () => 
-        window.location.href = './src/consent.html'
+        window.location.href = './src/User/dashboardUser.html'
     );
 
     // Cerrar menú móvil
