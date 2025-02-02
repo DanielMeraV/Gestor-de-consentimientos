@@ -194,6 +194,7 @@ GO
 
 -- Abrir la clave para inserción
 OPEN SYMMETRIC KEY MySymmetricKey DECRYPTION BY CERTIFICATE MyCertificate;
+GO
 
 -- Datos para Personas
 INSERT INTO Personas (
@@ -231,6 +232,7 @@ VALUES
     EncryptByKey(Key_GUID('MySymmetricKey'), CAST('Calle 3, Ciudad C' AS NVARCHAR(255))),
     'cliente'
 );
+GO
 
 CLOSE SYMMETRIC KEY MySymmetricKey;
 
@@ -324,3 +326,45 @@ GO
 
 select * from dbo.AuditoriaPersonas;
 select * from dbo.AuditoriaConsentimientos;
+
+
+------Erik-----------------------------------------
+
+SELECT name 
+FROM sys.default_constraints 
+WHERE parent_object_id = OBJECT_ID('dbo.RegistroConsentimientos') 
+AND parent_column_id = COLUMNPROPERTY(OBJECT_ID('dbo.RegistroConsentimientos'), 'FechaOtorgamiento', 'ColumnId');
+
+ALTER TABLE RegistroConsentimientos 
+DROP CONSTRAINT DF__RegistroC__Fecha__3D5E1FD2;
+
+ALTER TABLE RegistroConsentimientos 
+ALTER COLUMN FechaOtorgamiento DATETIME2(0) NOT NULL;
+
+ALTER TABLE RegistroConsentimientos 
+ADD CONSTRAINT DF_RegistroConsentimientos_Fecha DEFAULT GETDATE() FOR FechaOtorgamiento;
+
+-----------------------------
+
+-- 🔥 Creación del Procedimiento Almacenado
+CREATE PROCEDURE sp_InsertarRegistroConsentimiento
+    @PersonaID INT,
+    @ConsentimientoID INT,
+    @Aceptado BIT,
+    @VersionConsentimiento NVARCHAR(10),
+    @FechaOtorgamiento DATETIME,
+    @RegistroID INT OUTPUT -- Parámetro de salida para devolver el ID insertado
+AS
+BEGIN
+    SET NOCOUNT ON;
+
+    -- Insertar el registro en la tabla
+    INSERT INTO RegistroConsentimientos (PersonaID, ConsentimientoID, Aceptado, VersionConsentimiento, FechaOtorgamiento)
+    VALUES (@PersonaID, @ConsentimientoID, @Aceptado, @VersionConsentimiento, @FechaOtorgamiento);
+
+    -- Obtener el ID generado
+    SET @RegistroID = SCOPE_IDENTITY();
+END;
+GO
+
+------------------------------------
