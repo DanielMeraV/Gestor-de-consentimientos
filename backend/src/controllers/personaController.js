@@ -1,5 +1,6 @@
 const { Persona } = require("../models");
 const { sequelize } = require("../config/database");
+const crypto = require('crypto');
 const bcrypt = require("bcryptjs");
 require("dotenv").config();
 
@@ -14,6 +15,22 @@ const openSymmetricKey = async () => {
 const closeSymmetricKey = async () => {
   await sequelize.query("CLOSE SYMMETRIC KEY MySymmetricKey");
 };
+
+// Función para generar salt
+function generateSalt() {
+    return crypto.randomBytes(32);
+  }
+
+  // Función para derivar clave usando PBKDF2
+function deriveKey(password, salt) {
+    return new Promise((resolve, reject) => {
+      crypto.pbkdf2(password, salt, 100000, 64, 'sha512', (err, derivedKey) => {
+        if (err) reject(err);
+        resolve(derivedKey);
+      });
+    });
+  }
+
 
 const crearPersona = async (req, res) => {
   try {
@@ -44,23 +61,29 @@ const crearPersona = async (req, res) => {
         .json({ error: "Todos los campos son obligatorios" });
     }
 
-    const salt = await bcrypt.genSalt(10);
-    const hashedPassword = await bcrypt.hash(Password, salt);
+    // Generar salt aleatorio
+    const salt = generateSalt();
+    // Generar hash usando PBKDF2
+    const passwordHash = await deriveKey(Password, salt);
 
-    console.log("Contraseña original:", Password);
-    console.log("Hash generado:", hashedPassword);
+    console.log("Hash generado:", {
+      length: passwordHash.length,
+      sample: passwordHash.toString('hex').substring(0, 10)
+    });
 
+    
     // Consulta SQL directa para insertar los datos
     const query = `
     INSERT INTO Personas (
-        Nombre, Apellido, Identificacion, Password, FechaNacimiento, 
+        Nombre, Apellido, Identificacion, PasswordHash, PasswordSalt, FechaNacimiento, 
         Telefono, Correo, Direccion, TipoUsuario
     )
     VALUES (
         EncryptByKey(Key_GUID('MySymmetricKey'), CAST(:Nombre AS NVARCHAR(100))),
         EncryptByKey(Key_GUID('MySymmetricKey'), CAST(:Apellido AS NVARCHAR(100))),
         EncryptByKey(Key_GUID('MySymmetricKey'), CAST(:Identificacion AS NVARCHAR(20))),
-        :Password,  -- Guardar el hash directamente sin encriptar
+        :passwordHash,
+        :salt,
         EncryptByKey(Key_GUID('MySymmetricKey'), CAST(:FechaNacimiento AS NVARCHAR(10))),
         EncryptByKey(Key_GUID('MySymmetricKey'), CAST(:Telefono AS NVARCHAR(15))),
         EncryptByKey(Key_GUID('MySymmetricKey'), CAST(:Correo AS NVARCHAR(100))),
@@ -78,7 +101,8 @@ const crearPersona = async (req, res) => {
         Nombre,
         Apellido,
         Identificacion,
-        Password: hashedPassword,
+        passwordHash: Buffer.from(passwordHash),
+        salt: Buffer.from(salt),
         FechaNacimiento,
         Telefono,
         Correo,
@@ -100,7 +124,7 @@ const crearPersona = async (req, res) => {
 
 const obtenerPersonas = async (req, res) => {
   try {
-    // Abrir la clave simétrica antes de desencriptar
+    // Abrir la clave siméwtrica antes de desencriptar
     await openSymmetricKey();
 
     const personas = await Persona.findAll({

@@ -28,7 +28,17 @@
                 <span class="error-message" id="passwordError"></span>
             </div>
 
-            <button type="submit" class="btn-submit">Iniciar Sesión</button>
+            <!-- Contenedor para errores generales -->
+            <div class="error-container">
+                <span class="error-message" id="loginError"></span>
+                <span class="error-message" id="serverError"></span>
+            </div>
+
+            <!-- Un solo botón submit dentro del form -->
+            <button type="submit" class="btn-submit">
+                <span class="button-text">Iniciar Sesión</span>
+                <span class="spinner" style="display: none;"></span>
+            </button>
         </form>
 
         <div class="register-link">
@@ -40,7 +50,8 @@
         </div>
     </div>
 
-    <script src="https://kit.fontawesome.com/your-code.js"></script>
+    <!-- Asegúrate de que el script de FontAwesome se cargue correctamente -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/js/all.min.js"></script>
     <script src="../../js/login.js"></script>
 </body>
 </html>

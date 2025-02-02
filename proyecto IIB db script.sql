@@ -3,18 +3,14 @@
 -- ========================================
 CREATE DATABASE ConsentManagerDB;
 GO
-
 CREATE DATABASE ConsentManagerAuditDB;
 GO
 
--- ========================================
--- Uso de la Base de Datos Principal
--- ========================================
 USE ConsentManagerDB;
 GO
 
 -- ========================================
--- Creación de clave maestra y certificado para encriptación
+-- Creación de clave maestra y certificado
 -- ========================================
 CREATE MASTER KEY ENCRYPTION BY PASSWORD = 'PruebaSwSeguroIIB2024B';
 GO
@@ -28,21 +24,23 @@ ENCRYPTION BY CERTIFICATE MyCertificate;
 GO
 
 -- ========================================
--- Creación de Tablas en ConsentManagerDB
+-- Creación de Tablas con nueva estructura
 -- ========================================
 CREATE TABLE Personas (
     PersonaID INT IDENTITY(1,1) PRIMARY KEY,
     Nombre VARBINARY(MAX) NOT NULL,
     Apellido VARBINARY(MAX) NOT NULL,
     Identificacion VARBINARY(MAX) NOT NULL,
-    Password NVARCHAR(100) NOT NULL, 
+    PasswordHash VARBINARY(256) NOT NULL,  -- Almacena el hash PBKDF2
+    PasswordSalt VARBINARY(32) NOT NULL,   -- Salt único por usuario
     FechaNacimiento VARBINARY(MAX) NOT NULL,
     Telefono VARBINARY(MAX),
     Correo VARBINARY(MAX),
     Direccion VARBINARY(MAX),
-    TipoUsuario NVARCHAR(20) CHECK(TipoUsuario IN ('administrador', 'cliente')) DEFAULT 'cliente'
+    TipoUsuario NVARCHAR(20) CHECK(TipoUsuario IN ('administrador', 'cliente')) DEFAULT 'cliente',
+	IntentosLogin INT DEFAULT 0,
+    BloqueoHasta DATETIME NULL
 );
-
 CREATE TABLE Consentimientos (
     ConsentimientoID INT IDENTITY(1,1) PRIMARY KEY,
     NombreConsentimiento NVARCHAR(100) NOT NULL,
@@ -196,45 +194,6 @@ GO
 -- Abrir la clave para inserción
 OPEN SYMMETRIC KEY MySymmetricKey DECRYPTION BY CERTIFICATE MyCertificate;
 
--- Datos para Personas
-INSERT INTO Personas (
-    Nombre, Apellido, Identificacion, Password, FechaNacimiento, 
-    Telefono, Correo, Direccion, TipoUsuario
-)
-VALUES 
-(
-    EncryptByKey(Key_GUID('MySymmetricKey'), CAST('Admin' AS NVARCHAR(100))),
-    EncryptByKey(Key_GUID('MySymmetricKey'), CAST('Admin' AS NVARCHAR(100))),
-    EncryptByKey(Key_GUID('MySymmetricKey'), CAST('1723186952' AS NVARCHAR(20))),
-    EncryptByKey(Key_GUID('MySymmetricKey'), CAST('$2b$10$6HwNVZzRfY7h1RKF4D4Nz.Q.wMwGz0vNfMK5qXod4PSQz.kOHENyq' AS NVARCHAR(100))), -- Hash de 'Admin123*'
-    EncryptByKey(Key_GUID('MySymmetricKey'), CAST('2001-07-16' AS NVARCHAR(10))),
-    EncryptByKey(Key_GUID('MySymmetricKey'), CAST('0998457812' AS NVARCHAR(15))),
-    EncryptByKey(Key_GUID('MySymmetricKey'), CAST('admin@gmail.com' AS NVARCHAR(100))),
-    EncryptByKey(Key_GUID('MySymmetricKey'), CAST('Calle 1, Ciudad A' AS NVARCHAR(255))),
-    'administrador'
-),
-(
-    EncryptByKey(Key_GUID('MySymmetricKey'), CAST('Juan' AS NVARCHAR(100))),
-    EncryptByKey(Key_GUID('MySymmetricKey'), CAST('Pérez' AS NVARCHAR(100))),
-    EncryptByKey(Key_GUID('MySymmetricKey'), CAST('1234567890' AS NVARCHAR(20))),
-    EncryptByKey(Key_GUID('MySymmetricKey'), CAST('$2b$10$7KwXwRz3qEZh2RKG5E5Mz.P.xMxGz1vNfMK5qXod4PSQz.kOHENyr' AS NVARCHAR(100))), -- Hash de 'User123*'
-    EncryptByKey(Key_GUID('MySymmetricKey'), CAST('1990-05-20' AS NVARCHAR(10))),
-    EncryptByKey(Key_GUID('MySymmetricKey'), CAST('0987654321' AS NVARCHAR(15))),
-    EncryptByKey(Key_GUID('MySymmetricKey'), CAST('juan.perez@mail.com' AS NVARCHAR(100))),
-    EncryptByKey(Key_GUID('MySymmetricKey'), CAST('Calle 2, Ciudad B' AS NVARCHAR(255))),
-    'cliente'
-),
-(
-    EncryptByKey(Key_GUID('MySymmetricKey'), CAST('Ana' AS NVARCHAR(100))),
-    EncryptByKey(Key_GUID('MySymmetricKey'), CAST('García' AS NVARCHAR(100))),
-    EncryptByKey(Key_GUID('MySymmetricKey'), CAST('0987654321' AS NVARCHAR(20))),
-    EncryptByKey(Key_GUID('MySymmetricKey'), CAST('$2b$10$8LwYwSz4qFZh3RKH6F6Nz.R.yNxHz2vNfMK5qXod4PSQz.kOHENys' AS NVARCHAR(100))), -- Hash de 'Test123*'
-    EncryptByKey(Key_GUID('MySymmetricKey'), CAST('1985-08-15' AS NVARCHAR(10))),
-    EncryptByKey(Key_GUID('MySymmetricKey'), CAST('0976543210' AS NVARCHAR(15))),
-    EncryptByKey(Key_GUID('MySymmetricKey'), CAST('ana.garcia@mail.com' AS NVARCHAR(100))),
-    EncryptByKey(Key_GUID('MySymmetricKey'), CAST('Calle 3, Ciudad C' AS NVARCHAR(255))),
-    'cliente'
-);
 
 CLOSE SYMMETRIC KEY MySymmetricKey;
 
@@ -309,12 +268,15 @@ SELECT
     CAST(DecryptByKey(Nombre) AS NVARCHAR(100)) AS Nombre,
     CAST(DecryptByKey(Apellido) AS NVARCHAR(100)) AS Apellido,
     CAST(DecryptByKey(Identificacion) AS NVARCHAR(20)) AS Identificacion,
-    CAST(DecryptByKey(Password) AS NVARCHAR(100)) AS Password,
+    PasswordHash,
+	PasswordSalt,
     CAST(DecryptByKey(FechaNacimiento) AS NVARCHAR(10)) AS FechaNacimiento,
     CAST(DecryptByKey(Telefono) AS NVARCHAR(15)) AS Telefono,
     CAST(DecryptByKey(Correo) AS NVARCHAR(100)) AS Correo,
     CAST(DecryptByKey(Direccion) AS NVARCHAR(255)) AS Direccion,
-    TipoUsuario
+    TipoUsuario,
+	IntentosLogin,
+    BloqueoHasta
 FROM Personas;
 
 CLOSE SYMMETRIC KEY MySymmetricKey;

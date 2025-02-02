@@ -15,17 +15,25 @@ const authRoutes = require('./routes/authRoutes');
 
 const app = express();
 
-// Configuración de CORS
-app.use(cors({
-    origin: 'http://localhost:5173', // URL de tu frontend
-    methods: ['GET', 'POST', 'PUT', 'DELETE'],
-    credentials: true,
-    allowedHeaders: ['Content-Type', 'Authorization']
-}));
-
 // Middleware básico
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
+
+// Configuración de CORS - solo una vez y antes de las rutas
+app.use(cors({
+    origin: 'http://localhost:5173',
+    methods: ['GET', 'POST', 'PUT', 'DELETE'],
+    credentials: true,
+    allowedHeaders: ['Content-Type', 'Authorization'],
+    exposedHeaders: ['Authorization']
+}));
+
+// Middleware para logging de requests
+app.use((req, res, next) => {
+    console.log(`${new Date().toISOString()} - ${req.method} ${req.url}`);
+    console.log('Request body:', req.body);
+    next();
+});
 
 // Rutas
 app.use('/api/consentimientos', consentimientoRoutes);  
@@ -34,9 +42,15 @@ app.use('/api/registros-consentimiento', registroConsentimientoRoutes);
 app.use('/api/auditoria-personas', auditoriaPersonaRoutes);
 app.use('/api/auditoria-consentimientos', auditoriaConsentimientoRoutes);
 app.use('/api/auth', authRoutes);
-app.use(cors({
-    origin: 'http://localhost:5173' // El puerto donde corre tu frontend
-}));
+
+// Middleware para manejo de errores
+app.use((err, req, res, next) => {
+    console.error('Error:', err);
+    res.status(err.status || 500).json({
+        error: err.message || 'Error interno del servidor'
+    });
+});
+
 // Puerto
 const PORT = process.env.PORT || 3000;
 
