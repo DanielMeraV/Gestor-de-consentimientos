@@ -35,6 +35,7 @@ CREATE TABLE Personas (
     Nombre VARBINARY(MAX) NOT NULL,
     Apellido VARBINARY(MAX) NOT NULL,
     Identificacion VARBINARY(MAX) NOT NULL,
+    Password NVARCHAR(100) NOT NULL, 
     FechaNacimiento VARBINARY(MAX) NOT NULL,
     Telefono VARBINARY(MAX),
     Correo VARBINARY(MAX),
@@ -197,7 +198,7 @@ OPEN SYMMETRIC KEY MySymmetricKey DECRYPTION BY CERTIFICATE MyCertificate;
 
 -- Datos para Personas
 INSERT INTO Personas (
-    Nombre, Apellido, Identificacion, FechaNacimiento, 
+    Nombre, Apellido, Identificacion, Password, FechaNacimiento, 
     Telefono, Correo, Direccion, TipoUsuario
 )
 VALUES 
@@ -205,6 +206,7 @@ VALUES
     EncryptByKey(Key_GUID('MySymmetricKey'), CAST('Admin' AS NVARCHAR(100))),
     EncryptByKey(Key_GUID('MySymmetricKey'), CAST('Admin' AS NVARCHAR(100))),
     EncryptByKey(Key_GUID('MySymmetricKey'), CAST('1723186952' AS NVARCHAR(20))),
+    EncryptByKey(Key_GUID('MySymmetricKey'), CAST('$2b$10$6HwNVZzRfY7h1RKF4D4Nz.Q.wMwGz0vNfMK5qXod4PSQz.kOHENyq' AS NVARCHAR(100))), -- Hash de 'Admin123*'
     EncryptByKey(Key_GUID('MySymmetricKey'), CAST('2001-07-16' AS NVARCHAR(10))),
     EncryptByKey(Key_GUID('MySymmetricKey'), CAST('0998457812' AS NVARCHAR(15))),
     EncryptByKey(Key_GUID('MySymmetricKey'), CAST('admin@gmail.com' AS NVARCHAR(100))),
@@ -215,6 +217,7 @@ VALUES
     EncryptByKey(Key_GUID('MySymmetricKey'), CAST('Juan' AS NVARCHAR(100))),
     EncryptByKey(Key_GUID('MySymmetricKey'), CAST('Pérez' AS NVARCHAR(100))),
     EncryptByKey(Key_GUID('MySymmetricKey'), CAST('1234567890' AS NVARCHAR(20))),
+    EncryptByKey(Key_GUID('MySymmetricKey'), CAST('$2b$10$7KwXwRz3qEZh2RKG5E5Mz.P.xMxGz1vNfMK5qXod4PSQz.kOHENyr' AS NVARCHAR(100))), -- Hash de 'User123*'
     EncryptByKey(Key_GUID('MySymmetricKey'), CAST('1990-05-20' AS NVARCHAR(10))),
     EncryptByKey(Key_GUID('MySymmetricKey'), CAST('0987654321' AS NVARCHAR(15))),
     EncryptByKey(Key_GUID('MySymmetricKey'), CAST('juan.perez@mail.com' AS NVARCHAR(100))),
@@ -225,6 +228,7 @@ VALUES
     EncryptByKey(Key_GUID('MySymmetricKey'), CAST('Ana' AS NVARCHAR(100))),
     EncryptByKey(Key_GUID('MySymmetricKey'), CAST('García' AS NVARCHAR(100))),
     EncryptByKey(Key_GUID('MySymmetricKey'), CAST('0987654321' AS NVARCHAR(20))),
+    EncryptByKey(Key_GUID('MySymmetricKey'), CAST('$2b$10$8LwYwSz4qFZh3RKH6F6Nz.R.yNxHz2vNfMK5qXod4PSQz.kOHENys' AS NVARCHAR(100))), -- Hash de 'Test123*'
     EncryptByKey(Key_GUID('MySymmetricKey'), CAST('1985-08-15' AS NVARCHAR(10))),
     EncryptByKey(Key_GUID('MySymmetricKey'), CAST('0976543210' AS NVARCHAR(15))),
     EncryptByKey(Key_GUID('MySymmetricKey'), CAST('ana.garcia@mail.com' AS NVARCHAR(100))),
@@ -305,6 +309,7 @@ SELECT
     CAST(DecryptByKey(Nombre) AS NVARCHAR(100)) AS Nombre,
     CAST(DecryptByKey(Apellido) AS NVARCHAR(100)) AS Apellido,
     CAST(DecryptByKey(Identificacion) AS NVARCHAR(20)) AS Identificacion,
+    CAST(DecryptByKey(Password) AS NVARCHAR(100)) AS Password,
     CAST(DecryptByKey(FechaNacimiento) AS NVARCHAR(10)) AS FechaNacimiento,
     CAST(DecryptByKey(Telefono) AS NVARCHAR(15)) AS Telefono,
     CAST(DecryptByKey(Correo) AS NVARCHAR(100)) AS Correo,

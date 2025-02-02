@@ -65,7 +65,13 @@ const PersonaSchema = {
         validate: {
             isIn: [['administrador', 'cliente']],
         },
+    },
+    Password: {
+        type: DataTypes.BLOB,
+        allowNull: false,
+        field: 'Password',
     }
+
 };
 
 module.exports = { Persona, PersonaSchema };

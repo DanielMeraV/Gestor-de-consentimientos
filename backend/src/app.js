@@ -11,7 +11,7 @@ const personaRoutes = require('./routes/personaRoutes');
 const registroConsentimientoRoutes = require('./routes/registroConsentimientoRoutes');
 const auditoriaPersonaRoutes = require('./routes/auditoriaPersonaRoutes');
 const auditoriaConsentimientoRoutes = require('./routes/auditoriaConsentimientoRoutes');
-
+const authRoutes = require('./routes/authRoutes');
 
 const app = express();
 
@@ -33,6 +33,7 @@ app.use('/api/personas', personaRoutes);
 app.use('/api/registros-consentimiento', registroConsentimientoRoutes);
 app.use('/api/auditoria-personas', auditoriaPersonaRoutes);
 app.use('/api/auditoria-consentimientos', auditoriaConsentimientoRoutes);
+app.use('/api/auth', authRoutes);
 app.use(cors({
     origin: 'http://localhost:5173' // El puerto donde corre tu frontend
 }));

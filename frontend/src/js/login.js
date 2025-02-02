@@ -1,12 +1,74 @@
 document.addEventListener('DOMContentLoaded', () => {
     const loginForm = document.getElementById('loginForm');
+    const togglePassword = document.querySelector('.toggle-password');
+
+    // Toggle password visibility
+    togglePassword.addEventListener('click', function() {
+        const password = document.getElementById('password');
+        const icon = this.querySelector('i');
+        
+        if (password.type === 'password') {
+            password.type = 'text';
+            icon.classList.remove('fa-eye');
+            icon.classList.add('fa-eye-slash');
+        } else {
+            password.type = 'password';
+            icon.classList.remove('fa-eye-slash');
+            icon.classList.add('fa-eye');
+        }
+    });
+
+    function showError(message, elementId) {
+        const errorElement = document.getElementById(elementId);
+        errorElement.textContent = message;
+        errorElement.style.display = 'block';
+    }
+
+    function hideError(elementId) {
+        const errorElement = document.getElementById(elementId);
+        errorElement.style.display = 'none';
+    }
+
+    function validateForm() {
+        let isValid = true;
+        const identificacion = document.getElementById('identificacion').value.trim();
+        const password = document.getElementById('password').value;
+
+        // Validar identificación
+        if (!identificacion) {
+            showError('La identificación es requerida', 'identificacionError');
+            isValid = false;
+        } else if (identificacion.length !== 10 || !/^\d+$/.test(identificacion)) {
+            showError('La identificación debe tener 10 dígitos numéricos', 'identificacionError');
+            isValid = false;
+        } else {
+            hideError('identificacionError');
+        }
+
+        // Validar contraseña
+        if (!password) {
+            showError('La contraseña es requerida', 'passwordError');
+            isValid = false;
+        } else if (password.length < 6) {
+            showError('La contraseña debe tener al menos 6 caracteres', 'passwordError');
+            isValid = false;
+        } else {
+            hideError('passwordError');
+        }
+
+        return isValid;
+    }
 
     loginForm.addEventListener('submit', async (e) => {
         e.preventDefault();
+        
+        if (!validateForm()) {
+            return;
+        }
 
         const formData = {
-            Identificacion: document.getElementById('identificacion').value,
-            Correo: document.getElementById('correo').value
+            identificacion: document.getElementById('identificacion').value.trim(),
+            password: document.getElementById('password').value
         };
 
         try {
@@ -14,8 +76,7 @@ document.addEventListener('DOMContentLoaded', () => {
             submitButton.disabled = true;
             submitButton.textContent = 'Iniciando sesión...';
 
-            // Primero verificamos si el usuario existe
-            const verificacionResponse = await fetch(`http://localhost:3000/api/personas/verificar`, {
+            const response = await fetch('http://localhost:3000/api/auth/login', {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json'
@@ -23,75 +84,27 @@ document.addEventListener('DOMContentLoaded', () => {
                 body: JSON.stringify(formData)
             });
 
-            if (!verificacionResponse.ok) {
-                throw new Error('Usuario no encontrado. Por favor, verifique sus credenciales.');
-            }
+            const data = await response.json();
 
-            // Si el usuario existe, procedemos con el login
-            const loginResponse = await fetch('http://localhost:3000/api/auth/login', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json'
-                },
-                body: JSON.stringify(formData)
-            });
-
-            if (loginResponse.ok) {
-                const userData = await loginResponse.json();
+            if (response.ok) {
+                localStorage.setItem('token', data.token);
+                localStorage.setItem('userData', JSON.stringify(data.user));
                 
-                // Guardamos los datos del usuario en localStorage
-                localStorage.setItem('userToken', userData.token);
-                localStorage.setItem('userId', userData.PersonaID);
-                localStorage.setItem('userType', userData.TipoUsuario);
-
-                // Redirigimos según el tipo de usuario
-                if (userData.TipoUsuario === 'administrador') {
-                    window.location.href = '../views/admin/dashboard.html';
-                } else if (userData.TipoUsuario === 'cliente') {
-                    window.location.href = '../views/client/dashboard.html';
+                if (data.user.TipoUsuario === 'administrador') {
+                    window.location.href = '../admin/dashboard.html';
+                } else {
+                    window.location.href = '../client/dashboard.html';
                 }
             } else {
-                const errorData = await loginResponse.json();
-                throw new Error(errorData.message || 'Error en el inicio de sesión');
+                showError(data.error || 'Credenciales inválidas', 'identificacionError');
             }
         } catch (error) {
             console.error('Error:', error);
-            // Crear y mostrar mensaje de error
-            const errorMessage = document.createElement('div');
-            errorMessage.className = 'error-message';
-            errorMessage.style.display = 'block';
-            errorMessage.style.color = '#dc3545';
-            errorMessage.style.padding = '10px';
-            errorMessage.style.marginTop = '10px';
-            errorMessage.style.backgroundColor = '#ffe6e6';
-            errorMessage.style.borderRadius = '4px';
-            errorMessage.style.textAlign = 'center';
-            errorMessage.textContent = error.message || 'Error al iniciar sesión';
-
-            // Insertar mensaje de error después del formulario
-            const form = document.getElementById('loginForm');
-            form.parentNode.insertBefore(errorMessage, form.nextSibling);
-
-            // Remover mensaje después de 3 segundos
-            setTimeout(() => {
-                errorMessage.remove();
-            }, 3000);
+            showError('Error al iniciar sesión', 'identificacionError');
         } finally {
             const submitButton = document.querySelector('.btn-submit');
             submitButton.disabled = false;
             submitButton.textContent = 'Iniciar Sesión';
         }
-    });
-
-    // Validación en tiempo real
-    const inputs = loginForm.querySelectorAll('input[required]');
-    inputs.forEach(input => {
-        input.addEventListener('input', () => {
-            if (!input.value.trim()) {
-                input.classList.add('invalid');
-            } else {
-                input.classList.remove('invalid');
-            }
-        });
     });
 });

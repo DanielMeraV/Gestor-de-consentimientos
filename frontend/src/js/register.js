@@ -1,97 +1,197 @@
-document.addEventListener('DOMContentLoaded', () => {
-    const registroForm = document.getElementById('registroForm');
-    const fechaNacimientoInput = document.getElementById('fechaNacimiento');
-    const fechaNacimientoError = document.getElementById('fechaNacimientoError');
+document.addEventListener("DOMContentLoaded", () => {
+  const registroForm = document.getElementById("registroForm");
+  const togglePasswordButtons = document.querySelectorAll(".toggle-password");
 
-    // Establecer la fecha máxima como la fecha actual
-    const hoy = new Date();
-    const año = hoy.getFullYear();
-    const mes = String(hoy.getMonth() + 1).padStart(2, '0');
-    const dia = String(hoy.getDate()).padStart(2, '0');
-    const fechaMaxima = `${año}-${mes}-${dia}`;
-    
-    fechaNacimientoInput.setAttribute('max', fechaMaxima);
+  // Toggle password visibility
+  togglePasswordButtons.forEach((button) => {
+    button.addEventListener("click", function () {
+      const input = this.previousElementSibling;
+      const icon = this.querySelector("i");
 
-    // Validación de fecha de nacimiento
-    fechaNacimientoInput.addEventListener('change', (e) => {
-        const fechaSeleccionada = new Date(e.target.value);
-        const hoy = new Date();
-
-        if (fechaSeleccionada > hoy) {
-            fechaNacimientoError.textContent = 'La fecha no puede ser posterior a la actual';
-            fechaNacimientoError.style.display = 'block';
-            fechaNacimientoInput.classList.add('invalid');
-            e.target.value = ''; // Limpiar el campo
-        } else {
-            fechaNacimientoError.style.display = 'none';
-            fechaNacimientoInput.classList.remove('invalid');
-        }
+      if (input.type === "password") {
+        input.type = "text";
+        icon.classList.remove("fa-eye");
+        icon.classList.add("fa-eye-slash");
+      } else {
+        input.type = "password";
+        icon.classList.remove("fa-eye-slash");
+        icon.classList.add("fa-eye");
+      }
     });
+  });
 
-    registroForm.addEventListener('submit', async (e) => {
-        e.preventDefault();
+  function showError(message, elementId) {
+    const errorElement = document.getElementById(elementId);
+    errorElement.textContent = message;
+    errorElement.style.display = "block";
+  }
 
-        // Validar fecha antes de enviar
-        const fechaNacimiento = new Date(fechaNacimientoInput.value);
-        const hoy = new Date();
-        
-        if (fechaNacimiento > hoy) {
-            fechaNacimientoError.textContent = 'La fecha no puede ser posterior a la actual';
-            fechaNacimientoError.style.display = 'block';
-            fechaNacimientoInput.classList.add('invalid');
-            return;
-        }
+  function hideError(elementId) {
+    const errorElement = document.getElementById(elementId);
+    errorElement.style.display = "none";
+  }
 
-        const formData = {
-            Nombre: document.getElementById('nombre').value,
-            Apellido: document.getElementById('apellido').value,
-            Identificacion: document.getElementById('identificacion').value,
-            FechaNacimiento: document.getElementById('fechaNacimiento').value,
-            Telefono: document.getElementById('telefono').value,
-            Correo: document.getElementById('correo').value,
-            Direccion: document.getElementById('direccion').value,
-            TipoUsuario: 'cliente'
-        };
+  function validatePassword(password) {
+    const minLength = 8;
+    const hasUpperCase = /[A-Z]/.test(password);
+    const hasLowerCase = /[a-z]/.test(password);
+    const hasNumbers = /\d/.test(password);
+    const hasSpecialChar = /[!@#$%^&*(),.?":{}|<>]/.test(password);
 
-        try {
-            const submitButton = document.querySelector('.btn-submit');
-            submitButton.disabled = true;
-            submitButton.textContent = 'Registrando...';
+    return (
+      password.length >= minLength &&
+      hasUpperCase &&
+      hasLowerCase &&
+      hasNumbers &&
+      hasSpecialChar
+    );
+  }
 
-            const response = await fetch('http://localhost:3000/api/personas', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json'
-                },
-                body: JSON.stringify(formData)
-            });
+  function validateForm() {
+    let isValid = true;
+    const nombre = document.getElementById("nombre").value.trim();
+    const apellido = document.getElementById("apellido").value.trim();
+    const identificacion = document
+      .getElementById("identificacion")
+      .value.trim();
+    const password = document.getElementById("password").value;
+    const confirmPassword = document.getElementById("confirmPassword").value;
+    const telefono = document.getElementById("telefono").value.trim();
+    const correo = document.getElementById("correo").value.trim();
 
-            if (response.ok) {
-                alert('Registro completado exitosamente');
-                window.location.href = 'login.html';
-            } else {
-                const error = await response.json();
-                throw new Error(error.message || 'Error en el registro');
-            }
-        } catch (error) {
-            console.error('Error:', error);
-            alert(error.message || 'Error al procesar el registro');
-        } finally {
-            const submitButton = document.querySelector('.btn-submit');
-            submitButton.disabled = false;
-            submitButton.textContent = 'Completar Registro';
-        }
-    });
+    // Validar campos requeridos
+    if (!nombre) {
+      showError("El nombre es requerido", "nombreError");
+      isValid = false;
+    } else {
+      hideError("nombreError");
+    }
 
-    // Validación de campos en tiempo real
-    const inputs = registroForm.querySelectorAll('input[required]');
-    inputs.forEach(input => {
-        input.addEventListener('blur', () => {
-            if (!input.value) {
-                input.classList.add('invalid');
-            } else {
-                input.classList.remove('invalid');
-            }
-        });
-    });
+    if (!apellido) {
+      showError("El apellido es requerido", "apellidoError");
+      isValid = false;
+    } else {
+      hideError("apellidoError");
+    }
+
+    if (!identificacion) {
+      showError("La identificación es requerida", "identificacionError");
+      isValid = false;
+    } else if (identificacion.length !== 10 || !/^\d+$/.test(identificacion)) {
+      showError(
+        "La identificación debe tener 10 dígitos numéricos",
+        "identificacionError"
+      );
+      isValid = false;
+    } else {
+      hideError("identificacionError");
+    }
+
+    // Validar contraseña
+    if (!password) {
+      showError("La contraseña es requerida", "passwordError");
+      isValid = false;
+    } else if (!validatePassword(password)) {
+      showError("La contraseña no cumple con los requisitos", "passwordError");
+      isValid = false;
+    } else {
+      hideError("passwordError");
+    }
+
+    // Validar confirmación de contraseña
+    if (password !== confirmPassword) {
+      showError("Las contraseñas no coinciden", "confirmPasswordError");
+      isValid = false;
+    } else {
+      hideError("confirmPasswordError");
+    }
+
+    // Validar teléfono (opcional)
+    if (telefono && !/^\d{10}$/.test(telefono)) {
+      showError("El teléfono debe tener 10 dígitos", "telefonoError");
+      isValid = false;
+    } else {
+      hideError("telefonoError");
+    }
+
+    // Validar correo (opcional)
+    if (correo && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(correo)) {
+      showError("Formato de correo electrónico inválido", "correoError");
+      isValid = false;
+    } else {
+      hideError("correoError");
+    }
+
+    return isValid;
+
+    // Dentro de validateForm()
+    const fechaNacimiento = document.getElementById("fechaNacimiento").value;
+    if (!fechaNacimiento) {
+      showError("La fecha de nacimiento es requerida", "fechaNacimientoError");
+      isValid = false;
+    } else {
+      const fechaNac = new Date(fechaNacimiento);
+      if (fechaNac > new Date()) {
+        showError(
+          "La fecha de nacimiento no puede ser futura",
+          "fechaNacimientoError"
+        );
+        isValid = false;
+      } else {
+        hideError("fechaNacimientoError");
+      }
+    }
+  }
+
+  registroForm.addEventListener("submit", async (e) => {
+    e.preventDefault();
+
+    if (!validateForm()) {
+      return;
+    }
+
+    const formData = {
+      Nombre: document.getElementById("nombre").value.trim(),
+      Apellido: document.getElementById("apellido").value.trim(),
+      Identificacion: document.getElementById("identificacion").value.trim(),
+      Password: document.getElementById("password").value,
+      FechaNacimiento: document.getElementById("fechaNacimiento").value,
+      Telefono: document.getElementById("telefono").value.trim(),
+      Correo: document.getElementById("correo").value.trim(),
+      Direccion: document.getElementById("direccion").value.trim(),
+    };
+
+    try {
+      const submitButton = document.querySelector(".btn-submit");
+      submitButton.disabled = true;
+      submitButton.textContent = "Registrando...";
+
+      const response = await fetch("http://localhost:3000/api/personas", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify(formData),
+      });
+
+      const data = await response.json();
+
+      if (response.ok) {
+        alert("Registro completado exitosamente");
+        window.location.href = "login.html";
+      } else {
+        throw new Error(data.error || "Error en el registro");
+      }
+    } catch (error) {
+      console.error("Error:", error);
+      showError(
+        error.message || "Error al procesar el registro",
+        "identificacionError"
+      );
+    } finally {
+      const submitButton = document.querySelector(".btn-submit");
+      submitButton.disabled = false;
+      submitButton.textContent = "Registrarse";
+    }
+  });
 });

@@ -18,7 +18,7 @@ document.addEventListener('DOMContentLoaded', () => {
     // Botón registrar
     registerButton.addEventListener('click', () => {
         if(acceptTermsCheckbox.checked) {
-            window.location.href = 'registro.html';
+            window.location.href = 'register.html';
         } else {
             alert('Debe aceptar los términos y condiciones para continuar');
         }

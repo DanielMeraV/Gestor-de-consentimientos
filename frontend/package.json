@@ -10,5 +10,9 @@
   },
   "devDependencies": {
     "vite": "^6.0.11"
+  },
+  "dependencies": {
+    "bcrypt": "^5.1.1",
+    "jsonwebtoken": "^9.0.2"
   }
 }

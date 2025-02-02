@@ -100,3 +100,61 @@ h2 {
 .form-group input.invalid {
     border-color: #dc3545;
 }
+
+
+.password-requirements {
+    font-size: 12px;
+    color: #666;
+    margin-top: 5px;
+    display: block;
+}
+
+.error-message {
+    color: #dc3545;
+    font-size: 12px;
+    margin-top: 5px;
+    display: none;
+}
+
+.password-input-container {
+    position: relative;
+    width: 100%;
+}
+
+.password-input-container input {
+    width: 100%;
+    padding-right: 40px;
+}
+
+.toggle-password {
+    position: absolute;
+    right: 12px;
+    top: 50%;
+    transform: translateY(-50%);
+    background: none;
+    border: none;
+    cursor: pointer;
+    padding: 0;
+    color: #adb5bd;
+    opacity: 0.8;
+    transition: all 0.3s ease;
+}
+
+.toggle-password:hover {
+    color: var(--primary-color);
+    opacity: 1;
+}
+
+.toggle-password i {
+    font-size: 18px;
+    transition: transform 0.2s ease;
+}
+
+.toggle-password:hover i {
+    transform: scale(1.1);
+}
+
+.form-group input:focus + .toggle-password {
+    color: var(--primary-color);
+    opacity: 1;
+}
