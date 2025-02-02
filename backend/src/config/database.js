@@ -14,6 +14,7 @@ const sequelize = new Sequelize(
         dialectOptions: {
             options: {
                 trustServerCertificate: true,
+                encrypt: true,
             }
         },
         pool: {

@@ -1,5 +1,5 @@
 -- ========================================
--- Creaci髇 de Bases de Datos
+-- Creaci贸n de Bases de Datos
 -- ========================================
 CREATE DATABASE ConsentManagerDB;
 GO
@@ -14,26 +14,41 @@ USE ConsentManagerDB;
 GO
 
 -- ========================================
--- Creaci髇 de Tablas en ConsentManagerDB
+-- Creaci贸n de clave maestra y certificado para encriptaci贸n
 -- ========================================
-CREATE TABLE Personas ( --Informaci髇 b醩ica de cualquier persona que interact鷈 con el sistema.
+CREATE MASTER KEY ENCRYPTION BY PASSWORD = 'PruebaSwSeguroIIB2024B';
+GO
+
+CREATE CERTIFICATE MyCertificate WITH SUBJECT = 'CertificadoSwSeguro';
+GO
+
+CREATE SYMMETRIC KEY MySymmetricKey
+WITH ALGORITHM = AES_256
+ENCRYPTION BY CERTIFICATE MyCertificate;
+GO
+
+-- ========================================
+-- Creaci贸n de Tablas en ConsentManagerDB
+-- ========================================
+CREATE TABLE Personas (
     PersonaID INT IDENTITY(1,1) PRIMARY KEY,
-    Nombre NVARCHAR(100) NOT NULL,
-    Apellido NVARCHAR(100) NOT NULL,
-    Identificacion NVARCHAR(20) UNIQUE NOT NULL,
-    FechaNacimiento DATE NOT NULL,
-    Telefono NVARCHAR(15),
-    Correo NVARCHAR(100),
-    Direccion NVARCHAR(255)
+    Nombre VARBINARY(MAX) NOT NULL,
+    Apellido VARBINARY(MAX) NOT NULL,
+    Identificacion VARBINARY(MAX) NOT NULL,
+    FechaNacimiento VARBINARY(MAX) NOT NULL,
+    Telefono VARBINARY(MAX),
+    Correo VARBINARY(MAX),
+    Direccion VARBINARY(MAX),
+    TipoUsuario NVARCHAR(20) CHECK(TipoUsuario IN ('administrador', 'cliente')) DEFAULT 'cliente'
 );
 
-CREATE TABLE Consentimientos ( --Define los tipos de consentimientos disponibles
+CREATE TABLE Consentimientos (
     ConsentimientoID INT IDENTITY(1,1) PRIMARY KEY,
     NombreConsentimiento NVARCHAR(100) NOT NULL,
     Descripcion NVARCHAR(255) NOT NULL
 );
 
-CREATE TABLE RegistroConsentimientos ( --Relaciona una persona con un consentimiento otorgado.
+CREATE TABLE RegistroConsentimientos (
     RegistroID INT IDENTITY(1,1) PRIMARY KEY,
     PersonaID INT NOT NULL,
     ConsentimientoID INT NOT NULL,
@@ -45,15 +60,15 @@ CREATE TABLE RegistroConsentimientos ( --Relaciona una persona con un consentimi
 );
 
 -- ========================================
--- Uso de la Base de Datos de Auditor韆
+-- Uso de la Base de Datos de Auditor铆a
 -- ========================================
 USE ConsentManagerAuditDB;
 GO
 
 -- ========================================
--- Creaci髇 de Tablas en ConsentManagerAuditDB
+-- Creaci贸n de Tablas en ConsentManagerAuditDB
 -- ========================================
-CREATE TABLE AuditoriaPersonas ( --Rastrea cambios o eventos relacionados con el registro de consentimientos
+CREATE TABLE AuditoriaPersonas (
     AuditoriaID INT IDENTITY(1,1) PRIMARY KEY,
     PersonaID INT NOT NULL,
     Accion NVARCHAR(50) NOT NULL,
@@ -61,7 +76,7 @@ CREATE TABLE AuditoriaPersonas ( --Rastrea cambios o eventos relacionados con el
     Detalles NVARCHAR(255)
 );
 
-CREATE TABLE AuditoriaConsentimientos ( --Rastrea cualquier modificaci髇 de registros en la tabla Personas.
+CREATE TABLE AuditoriaConsentimientos (
     AuditoriaID INT IDENTITY(1,1) PRIMARY KEY,
     RegistroID INT NOT NULL,
     PersonaID INT NOT NULL,
@@ -72,25 +87,31 @@ CREATE TABLE AuditoriaConsentimientos ( --Rastrea cualquier modificaci髇 de regi
 );
 
 -- ========================================
--- Creaci髇 de Triggers en ConsentManagerDB
+-- Creaci贸n de Triggers en ConsentManagerDB
 -- ========================================
 USE ConsentManagerDB;
 GO
 
 -- Trigger para Personas
--- Registra en AuditoriaPersonas cualquier acci髇 de inserci髇, actualizaci髇 o eliminaci髇 en la tabla Personas.
 CREATE TRIGGER trg_AuditoriaPersonas
 ON Personas
 AFTER INSERT, UPDATE, DELETE
 AS
 BEGIN
     SET NOCOUNT ON;
+    OPEN SYMMETRIC KEY MySymmetricKey DECRYPTION BY CERTIFICATE MyCertificate;
 
     -- Inserciones
     IF EXISTS (SELECT 1 FROM inserted)
     BEGIN
         INSERT INTO ConsentManagerAuditDB.dbo.AuditoriaPersonas (PersonaID, Accion, Fecha, Detalles)
-        SELECT PersonaID, 'Creaci髇', GETDATE(), CONCAT('Persona creada: ', Nombre, ' ', Apellido)
+        SELECT 
+            PersonaID, 
+            'Creaci贸n', 
+            GETDATE(), 
+            CONCAT('Persona creada: ', 
+                CAST(DecryptByKey(Nombre) AS NVARCHAR(100)), ' ',
+                CAST(DecryptByKey(Apellido) AS NVARCHAR(100)))
         FROM inserted;
     END
 
@@ -98,8 +119,16 @@ BEGIN
     IF EXISTS (SELECT 1 FROM inserted) AND EXISTS (SELECT 1 FROM deleted)
     BEGIN
         INSERT INTO ConsentManagerAuditDB.dbo.AuditoriaPersonas (PersonaID, Accion, Fecha, Detalles)
-        SELECT i.PersonaID, 'Modificaci髇', GETDATE(), 
-               CONCAT('Antes: ', d.Nombre, ' ', d.Apellido, '. Ahora: ', i.Nombre, ' ', i.Apellido)
+        SELECT 
+            i.PersonaID, 
+            'Modificaci贸n', 
+            GETDATE(),
+            CONCAT('Antes: ', 
+                CAST(DecryptByKey(d.Nombre) AS NVARCHAR(100)), ' ',
+                CAST(DecryptByKey(d.Apellido) AS NVARCHAR(100)),
+                '. Ahora: ',
+                CAST(DecryptByKey(i.Nombre) AS NVARCHAR(100)), ' ',
+                CAST(DecryptByKey(i.Apellido) AS NVARCHAR(100)))
         FROM inserted i
         INNER JOIN deleted d ON i.PersonaID = d.PersonaID;
     END
@@ -108,14 +137,21 @@ BEGIN
     IF EXISTS (SELECT 1 FROM deleted)
     BEGIN
         INSERT INTO ConsentManagerAuditDB.dbo.AuditoriaPersonas (PersonaID, Accion, Fecha, Detalles)
-        SELECT PersonaID, 'Eliminaci髇', GETDATE(), CONCAT('Persona eliminada: ', Nombre, ' ', Apellido)
+        SELECT 
+            PersonaID, 
+            'Eliminaci贸n', 
+            GETDATE(),
+            CONCAT('Persona eliminada: ',
+                CAST(DecryptByKey(Nombre) AS NVARCHAR(100)), ' ',
+                CAST(DecryptByKey(Apellido) AS NVARCHAR(100)))
         FROM deleted;
     END
+
+    CLOSE SYMMETRIC KEY MySymmetricKey;
 END;
 GO
 
--- Trigger para RegistroConsentimientos
--- Guarda auditor韆 para inserciones, actualizaciones o eliminaciones en RegistroConsentimientos.
+-- [El trigger de RegistroConsentimientos se mantiene igual]
 CREATE TRIGGER trg_AuditoriaRegistroConsentimientos
 ON RegistroConsentimientos
 AFTER INSERT, UPDATE, DELETE
@@ -127,109 +163,164 @@ BEGIN
     IF EXISTS (SELECT 1 FROM inserted)
     BEGIN
         INSERT INTO ConsentManagerAuditDB.dbo.AuditoriaConsentimientos (RegistroID, PersonaID, ConsentimientoID, Accion, Fecha, Detalles)
-        SELECT RegistroID, PersonaID, ConsentimientoID, 'Creaci髇', GETDATE(), CONCAT('Consentimiento otorgado. Aceptado: ', Aceptado)
+        SELECT RegistroID, PersonaID, ConsentimientoID, 'Creaci贸n', GETDATE(), CONCAT('Consentimiento otorgado. Aceptado: ', Aceptado)
         FROM inserted;
     END
 
-    -- Actualizaciones
+    -- Actualizaciones y Eliminaciones [se mantienen igual]
     IF EXISTS (SELECT 1 FROM inserted) AND EXISTS (SELECT 1 FROM deleted)
     BEGIN
         INSERT INTO ConsentManagerAuditDB.dbo.AuditoriaConsentimientos (RegistroID, PersonaID, ConsentimientoID, Accion, Fecha, Detalles)
-        SELECT i.RegistroID, i.PersonaID, i.ConsentimientoID, 'Modificaci髇', GETDATE(),
+        SELECT i.RegistroID, i.PersonaID, i.ConsentimientoID, 'Modificaci贸n', GETDATE(),
                CONCAT('Antes: Aceptado = ', d.Aceptado, '. Ahora: Aceptado = ', i.Aceptado)
         FROM inserted i
         INNER JOIN deleted d ON i.RegistroID = d.RegistroID;
     END
 
-    -- Eliminaciones
     IF EXISTS (SELECT 1 FROM deleted)
     BEGIN
         INSERT INTO ConsentManagerAuditDB.dbo.AuditoriaConsentimientos (RegistroID, PersonaID, ConsentimientoID, Accion, Fecha, Detalles)
-        SELECT RegistroID, PersonaID, ConsentimientoID, 'Eliminaci髇', GETDATE(), 'Consentimiento eliminado'
+        SELECT RegistroID, PersonaID, ConsentimientoID, 'Eliminaci贸n', GETDATE(), 'Consentimiento eliminado'
         FROM deleted;
     END
 END;
 GO
 
 -- ========================================
--- Inserci髇 de Datos de Prueba
+-- Inserci贸n de Datos de Prueba
 -- ========================================
 USE ConsentManagerDB;
 GO
 
+-- Abrir la clave para inserci贸n
+OPEN SYMMETRIC KEY MySymmetricKey DECRYPTION BY CERTIFICATE MyCertificate;
+
 -- Datos para Personas
-INSERT INTO Personas (Nombre, Apellido, Identificacion, FechaNacimiento, Telefono, Correo, Direccion)
+INSERT INTO Personas (
+    Nombre, Apellido, Identificacion, FechaNacimiento, 
+    Telefono, Correo, Direccion, TipoUsuario
+)
 VALUES 
-('Juan', 'P閞ez', '1234567890', '1990-05-20', '0987654321', 'juan.perez@mail.com', 'Calle 1, Ciudad A'),
-('Ana', 'Garc韆', '0987654321', '1985-08-15', '0976543210', 'ana.garcia@mail.com', 'Calle 2, Ciudad B'),
-('Carlos', 'Lopez', '1122334455', '1995-02-10', '0998765432', 'carlos.lopez@mail.com', 'Calle 3, Ciudad C'),
-('Mar韆', 'Mart韓ez', '2233445566', '2000-12-25', '0965432109', 'maria.martinez@mail.com', 'Calle 4, Ciudad D'),
-('Luc韆', 'Hern醤dez', '3344556677', '1992-07-30', '0954321098', 'lucia.hernandez@mail.com', 'Calle 5, Ciudad E');
+(
+    EncryptByKey(Key_GUID('MySymmetricKey'), CAST('Admin' AS NVARCHAR(100))),
+    EncryptByKey(Key_GUID('MySymmetricKey'), CAST('Admin' AS NVARCHAR(100))),
+    EncryptByKey(Key_GUID('MySymmetricKey'), CAST('1723186952' AS NVARCHAR(20))),
+    EncryptByKey(Key_GUID('MySymmetricKey'), CAST('2001-07-16' AS NVARCHAR(10))),
+    EncryptByKey(Key_GUID('MySymmetricKey'), CAST('0998457812' AS NVARCHAR(15))),
+    EncryptByKey(Key_GUID('MySymmetricKey'), CAST('admin@gmail.com' AS NVARCHAR(100))),
+    EncryptByKey(Key_GUID('MySymmetricKey'), CAST('Calle 1, Ciudad A' AS NVARCHAR(255))),
+    'administrador'
+),
+(
+    EncryptByKey(Key_GUID('MySymmetricKey'), CAST('Juan' AS NVARCHAR(100))),
+    EncryptByKey(Key_GUID('MySymmetricKey'), CAST('P茅rez' AS NVARCHAR(100))),
+    EncryptByKey(Key_GUID('MySymmetricKey'), CAST('1234567890' AS NVARCHAR(20))),
+    EncryptByKey(Key_GUID('MySymmetricKey'), CAST('1990-05-20' AS NVARCHAR(10))),
+    EncryptByKey(Key_GUID('MySymmetricKey'), CAST('0987654321' AS NVARCHAR(15))),
+    EncryptByKey(Key_GUID('MySymmetricKey'), CAST('juan.perez@mail.com' AS NVARCHAR(100))),
+    EncryptByKey(Key_GUID('MySymmetricKey'), CAST('Calle 2, Ciudad B' AS NVARCHAR(255))),
+    'cliente'
+),
+(
+    EncryptByKey(Key_GUID('MySymmetricKey'), CAST('Ana' AS NVARCHAR(100))),
+    EncryptByKey(Key_GUID('MySymmetricKey'), CAST('Garc铆a' AS NVARCHAR(100))),
+    EncryptByKey(Key_GUID('MySymmetricKey'), CAST('0987654321' AS NVARCHAR(20))),
+    EncryptByKey(Key_GUID('MySymmetricKey'), CAST('1985-08-15' AS NVARCHAR(10))),
+    EncryptByKey(Key_GUID('MySymmetricKey'), CAST('0976543210' AS NVARCHAR(15))),
+    EncryptByKey(Key_GUID('MySymmetricKey'), CAST('ana.garcia@mail.com' AS NVARCHAR(100))),
+    EncryptByKey(Key_GUID('MySymmetricKey'), CAST('Calle 3, Ciudad C' AS NVARCHAR(255))),
+    'cliente'
+);
+
+CLOSE SYMMETRIC KEY MySymmetricKey;
 
 -- Datos para Consentimientos
 INSERT INTO Consentimientos (NombreConsentimiento, Descripcion)
 VALUES 
-('T閞minos y Condiciones', 'Aceptaci髇 de t閞minos para usar el sistema'),
-('Pol韙ica de Privacidad', 'Consentimiento para el tratamiento de datos personales'),
-('Cookies', 'Autorizaci髇 para el uso de cookies en la aplicaci髇'),
+('T茅rminos y Condiciones', 'Aceptaci贸n de t茅rminos para usar el sistema'),
+('Pol铆tica de Privacidad', 'Consentimiento para el tratamiento de datos personales'),
+('Cookies', 'Autorizaci贸n para el uso de cookies en la aplicaci贸n'),
 ('Notificaciones Promocionales', 'Consentimiento para recibir mensajes promocionales'),
-('Compartici髇 de Datos', 'Aceptaci髇 para compartir datos con terceros');
+('Compartici贸n de Datos', 'Aceptaci贸n para compartir datos con terceros');
 
--- Datos para RegistroConsentimientos
+-- Datos para RegistroConsentimientos 
 INSERT INTO RegistroConsentimientos (PersonaID, ConsentimientoID, Aceptado, VersionConsentimiento)
 VALUES 
 (1, 1, 1, '1.0'),
-(1, 2, 1, '1.0'),
+(2, 2, 1, '1.0'),
 (2, 1, 0, '1.0'),
 (3, 3, 1, '2.0'),
-(4, 4, 1, '1.1');
-
+(3, 4, 1, '1.1');
 
 -- ========================================
--- Verificaci髇 de las tablas
+-- Creaci贸n y configuraci贸n del usuario
+-- ========================================
+USE [master];
+GO
+
+-- Crear login
+CREATE LOGIN SwSeguro WITH PASSWORD = 'SwSeguro123';
+GO
+
+-- Crear usuario en ConsentManagerDB
+USE ConsentManagerDB;
+GO
+
+CREATE USER SwSeguro FOR LOGIN SwSeguro;
+GO
+
+-- Dar permisos en ConsentManagerDB
+GRANT CONTROL ON DATABASE::ConsentManagerDB TO SwSeguro;
+GRANT VIEW DEFINITION ON SYMMETRIC KEY::MySymmetricKey TO SwSeguro;
+GRANT VIEW DEFINITION ON CERTIFICATE::MyCertificate TO SwSeguro;
+GRANT CONTROL ON SCHEMA::dbo TO SwSeguro;
+
+-- Crear usuario en ConsentManagerAuditDB
+USE ConsentManagerAuditDB;
+GO
+
+CREATE USER SwSeguro FOR LOGIN SwSeguro;
+GO
+
+-- Dar permisos en ConsentManagerAuditDB
+GRANT CONTROL ON DATABASE::ConsentManagerAuditDB TO SwSeguro;
+GRANT CONTROL ON SCHEMA::dbo TO SwSeguro;
+
+-- ========================================
+-- Consulta de prueba para verificar la encriptaci贸n
 -- ========================================
 USE ConsentManagerDB;
 GO
 
-select * from dbo.Personas;
+-- Consultar datos encriptados
+SELECT * FROM Personas;
+
+
+-- Abrir la clave para consulta
+OPEN SYMMETRIC KEY MySymmetricKey DECRYPTION BY CERTIFICATE MyCertificate;
+
+-- Consultar datos desencriptados
+SELECT 
+    PersonaID,
+    CAST(DecryptByKey(Nombre) AS NVARCHAR(100)) AS Nombre,
+    CAST(DecryptByKey(Apellido) AS NVARCHAR(100)) AS Apellido,
+    CAST(DecryptByKey(Identificacion) AS NVARCHAR(20)) AS Identificacion,
+    CAST(DecryptByKey(FechaNacimiento) AS NVARCHAR(10)) AS FechaNacimiento,
+    CAST(DecryptByKey(Telefono) AS NVARCHAR(15)) AS Telefono,
+    CAST(DecryptByKey(Correo) AS NVARCHAR(100)) AS Correo,
+    CAST(DecryptByKey(Direccion) AS NVARCHAR(255)) AS Direccion,
+    TipoUsuario
+FROM Personas;
+
+CLOSE SYMMETRIC KEY MySymmetricKey;
+
+-- Consultar consentimientos y registroConsentimientos
 select * from dbo.Consentimientos;
 select * from dbo.RegistroConsentimientos;
 
+-- Consultar tablas auditoria
 USE ConsentManagerAuditDB;
 GO
 
 select * from dbo.AuditoriaPersonas;
 select * from dbo.AuditoriaConsentimientos;
-
-
--- ========================================
--- Creaci髇 de un nuevo usuario
--- ========================================
--- Paso 1: Crear un nuevo login para SQL Server
-USE [master]; -- Usamos la base de datos 'master' para crear el login
-GO
-
-CREATE LOGIN SwSeguro WITH PASSWORD = 'SwSeguro123'; 
-GO
-
--- Paso 2: Crear el usuario en la base de datos principal
-USE [ConsentManagerDB]; -- Cambia por el nombre de tu base de datos principal
-GO
-
-CREATE USER SwSeguro FOR LOGIN SwSeguro;
-GO
-
--- Asignar permisos de lectura y escritura en la base de datos principal
-ALTER ROLE db_owner ADD MEMBER SwSeguro; 
-GO
-
--- Paso 3: Crear el usuario en la base de datos de auditor韆
-USE [ConsentManagerAuditDB]; -- Cambia por el nombre de tu base de datos de auditor韆
-GO
-
-CREATE USER SwSeguro FOR LOGIN SwSeguro;
-GO
-
--- Asignar permisos de lectura y escritura en la base de datos de auditor韆
-ALTER ROLE db_owner ADD MEMBER SwSeguro;
-GO
