@@ -1,38 +1,62 @@
 const { Persona } = require("../models");
 const { sequelize } = require("../config/database");
 const crypto = require('crypto');
-const bcrypt = require("bcryptjs");
 require("dotenv").config();
 
 // Función para abrir la clave simétrica
 const openSymmetricKey = async () => {
-  await sequelize.query(
-    "OPEN SYMMETRIC KEY MySymmetricKey DECRYPTION BY CERTIFICATE MyCertificate"
-  );
+  try {
+    const [keyStatus] = await sequelize.query(`
+      SELECT COUNT(*) as count
+      FROM sys.openkeys 
+      WHERE key_name = 'MySymmetricKey'
+    `);
+    
+    if (keyStatus[0].count === 0) {
+      await sequelize.query(
+        "OPEN SYMMETRIC KEY MySymmetricKey DECRYPTION BY CERTIFICATE MyCertificate"
+      );
+    }
+  } catch (error) {
+    console.error("Error al abrir la clave simétrica:", error);
+    throw error;
+  }
 };
 
 // Función para cerrar la clave simétrica
 const closeSymmetricKey = async () => {
-  await sequelize.query("CLOSE SYMMETRIC KEY MySymmetricKey");
+  try {
+    const [keyStatus] = await sequelize.query(`
+      SELECT COUNT(*) as count
+      FROM sys.openkeys 
+      WHERE key_name = 'MySymmetricKey'
+    `);
+    
+    if (keyStatus[0].count > 0) {
+      await sequelize.query("CLOSE SYMMETRIC KEY MySymmetricKey");
+    }
+  } catch (error) {
+    console.error("Error al cerrar la clave simétrica:", error);
+  }
 };
 
 // Función para generar salt
 function generateSalt() {
-    return crypto.randomBytes(32);
-  }
+  return crypto.randomBytes(32);
+}
 
-  // Función para derivar clave usando PBKDF2
+// Función para derivar clave usando PBKDF2
 function deriveKey(password, salt) {
-    return new Promise((resolve, reject) => {
-      crypto.pbkdf2(password, salt, 100000, 64, 'sha512', (err, derivedKey) => {
-        if (err) reject(err);
-        resolve(derivedKey);
-      });
+  return new Promise((resolve, reject) => {
+    crypto.pbkdf2(password, salt, 100000, 64, 'sha512', (err, derivedKey) => {
+      if (err) reject(err);
+      resolve(derivedKey);
     });
-  }
-
+  });
+}
 
 const crearPersona = async (req, res) => {
+  let keyOpened = false;
   try {
     const {
       Nombre,
@@ -46,6 +70,7 @@ const crearPersona = async (req, res) => {
       TipoUsuario = "cliente",
     } = req.body;
 
+    // Validar campos requeridos
     if (
       !Nombre ||
       !Apellido ||
@@ -56,47 +81,42 @@ const crearPersona = async (req, res) => {
       !Correo ||
       !Direccion
     ) {
-      return res
-        .status(400)
-        .json({ error: "Todos los campos son obligatorios" });
+      return res.status(400).json({ error: "Todos los campos son obligatorios" });
     }
 
-    // Generar salt aleatorio
+    // Generar salt y hash para la contraseña
     const salt = generateSalt();
-    // Generar hash usando PBKDF2
     const passwordHash = await deriveKey(Password, salt);
 
-    console.log("Hash generado:", {
-      length: passwordHash.length,
-      sample: passwordHash.toString('hex').substring(0, 10)
-    });
-
-    
-    // Consulta SQL directa para insertar los datos
-    const query = `
-    INSERT INTO Personas (
-        Nombre, Apellido, Identificacion, PasswordHash, PasswordSalt, FechaNacimiento, 
-        Telefono, Correo, Direccion, TipoUsuario
-    )
-    VALUES (
-        EncryptByKey(Key_GUID('MySymmetricKey'), CAST(:Nombre AS NVARCHAR(100))),
-        EncryptByKey(Key_GUID('MySymmetricKey'), CAST(:Apellido AS NVARCHAR(100))),
-        EncryptByKey(Key_GUID('MySymmetricKey'), CAST(:Identificacion AS NVARCHAR(20))),
-        :passwordHash,
-        :salt,
-        EncryptByKey(Key_GUID('MySymmetricKey'), CAST(:FechaNacimiento AS NVARCHAR(10))),
-        EncryptByKey(Key_GUID('MySymmetricKey'), CAST(:Telefono AS NVARCHAR(15))),
-        EncryptByKey(Key_GUID('MySymmetricKey'), CAST(:Correo AS NVARCHAR(100))),
-        EncryptByKey(Key_GUID('MySymmetricKey'), CAST(:Direccion AS NVARCHAR(255))),
-        :TipoUsuario
-    );
-`;
-
-    // Abrir la clave simétrica antes de encriptar
     await openSymmetricKey();
+    keyOpened = true;
 
-    // Ejecutar la consulta
-    await sequelize.query(query, {
+    // Query modificado para retornar el ID insertado
+    const query = `
+      DECLARE @NewPersonaID INT;
+
+      INSERT INTO Personas (
+          Nombre, Apellido, Identificacion, PasswordHash, PasswordSalt, 
+          FechaNacimiento, Telefono, Correo, Direccion, TipoUsuario
+      )
+      VALUES (
+          EncryptByKey(Key_GUID('MySymmetricKey'), CAST(:Nombre AS NVARCHAR(100))),
+          EncryptByKey(Key_GUID('MySymmetricKey'), CAST(:Apellido AS NVARCHAR(100))),
+          EncryptByKey(Key_GUID('MySymmetricKey'), CAST(:Identificacion AS NVARCHAR(20))),
+          :passwordHash,
+          :salt,
+          EncryptByKey(Key_GUID('MySymmetricKey'), CAST(:FechaNacimiento AS NVARCHAR(10))),
+          EncryptByKey(Key_GUID('MySymmetricKey'), CAST(:Telefono AS NVARCHAR(15))),
+          EncryptByKey(Key_GUID('MySymmetricKey'), CAST(:Correo AS NVARCHAR(100))),
+          EncryptByKey(Key_GUID('MySymmetricKey'), CAST(:Direccion AS NVARCHAR(255))),
+          :TipoUsuario
+      );
+      
+      SET @NewPersonaID = SCOPE_IDENTITY();
+      SELECT @NewPersonaID as personaId;
+    `;
+
+    const [result] = await sequelize.query(query, {
       replacements: {
         Nombre,
         Apellido,
@@ -112,58 +132,54 @@ const crearPersona = async (req, res) => {
       type: sequelize.QueryTypes.INSERT,
     });
 
-    res.status(201).json({ message: "Persona creada correctamente" });
+    // Asegurarse de que tenemos un ID válido
+    if (!result || !result[0] || !result[0].personaId) {
+      throw new Error("No se pudo obtener el ID de la persona creada");
+    }
 
-    // Cerrar la clave simétrica después de encriptar
-    //await closeSymmetricKey();
+    // Enviar respuesta con el ID de la persona creada
+    res.status(201).json({
+      message: "Persona creada correctamente",
+      personaId: result[0].personaId
+    });
+
   } catch (error) {
-    console.error(error);
+    console.error("Error al crear la persona:", error);
     res.status(500).json({ error: "Error al crear la persona" });
+  } finally {
+    if (keyOpened) {
+      try {
+        await closeSymmetricKey();
+      } catch (err) {
+        console.error("Error al cerrar la clave simétrica:", err);
+      }
+    }
   }
 };
 
+// Los demás métodos permanecen igual...
 const obtenerPersonas = async (req, res) => {
+  let keyOpened = false;
   try {
-    // Abrir la clave siméwtrica antes de desencriptar
     await openSymmetricKey();
+    keyOpened = true;
 
-    const personas = await Persona.findAll({
-      attributes: [
-        "PersonaID",
-        [
-          sequelize.literal(`CAST(DecryptByKey(Nombre) AS NVARCHAR(100))`),
-          "Nombre",
-        ],
-        [
-          sequelize.literal(`CAST(DecryptByKey(Apellido) AS NVARCHAR(100))`),
-          "Apellido",
-        ],
-        [
-          sequelize.literal(
-            `CAST(DecryptByKey(Identificacion) AS NVARCHAR(20))`
-          ),
-          "Identificacion",
-        ],
-        [
-          sequelize.literal(
-            `CAST(DecryptByKey(FechaNacimiento) AS NVARCHAR(10))`
-          ),
-          "FechaNacimiento",
-        ],
-        [
-          sequelize.literal(`CAST(DecryptByKey(Telefono) AS NVARCHAR(15))`),
-          "Telefono",
-        ],
-        [
-          sequelize.literal(`CAST(DecryptByKey(Correo) AS NVARCHAR(100))`),
-          "Correo",
-        ],
-        [
-          sequelize.literal(`CAST(DecryptByKey(Direccion) AS NVARCHAR(255))`),
-          "Direccion",
-        ],
-        "TipoUsuario",
-      ],
+    const query = `
+      SELECT 
+        PersonaID,
+        CAST(DecryptByKey(Nombre) AS NVARCHAR(100)) AS Nombre,
+        CAST(DecryptByKey(Apellido) AS NVARCHAR(100)) AS Apellido,
+        CAST(DecryptByKey(Identificacion) AS NVARCHAR(20)) AS Identificacion,
+        CAST(DecryptByKey(FechaNacimiento) AS NVARCHAR(10)) AS FechaNacimiento,
+        CAST(DecryptByKey(Telefono) AS NVARCHAR(15)) AS Telefono,
+        CAST(DecryptByKey(Correo) AS NVARCHAR(100)) AS Correo,
+        CAST(DecryptByKey(Direccion) AS NVARCHAR(255)) AS Direccion,
+        TipoUsuario
+      FROM Personas
+    `;
+
+    const personas = await sequelize.query(query, {
+      type: sequelize.QueryTypes.SELECT
     });
 
     res.status(200).json(personas);
@@ -171,52 +187,40 @@ const obtenerPersonas = async (req, res) => {
     console.error(error);
     res.status(500).json({ error: "Error al obtener las personas" });
   } finally {
-    await closeSymmetricKey();
+    if (keyOpened) {
+      try {
+        await closeSymmetricKey();
+      } catch (err) {
+        console.error("Error al cerrar la clave simétrica:", err);
+      }
+    }
   }
 };
 
 const obtenerPersonaPorId = async (req, res) => {
+  let keyOpened = false;
   try {
-    // Abrir la clave simétrica antes de desencriptar
     await openSymmetricKey();
+    keyOpened = true;
 
-    const persona = await Persona.findByPk(req.params.id, {
-      attributes: [
-        "PersonaID",
-        [
-          sequelize.literal(`CAST(DecryptByKey(Nombre) AS NVARCHAR(100))`),
-          "Nombre",
-        ],
-        [
-          sequelize.literal(`CAST(DecryptByKey(Apellido) AS NVARCHAR(100))`),
-          "Apellido",
-        ],
-        [
-          sequelize.literal(
-            `CAST(DecryptByKey(Identificacion) AS NVARCHAR(20))`
-          ),
-          "Identificacion",
-        ],
-        [
-          sequelize.literal(
-            `CAST(DecryptByKey(FechaNacimiento) AS NVARCHAR(10))`
-          ),
-          "FechaNacimiento",
-        ],
-        [
-          sequelize.literal(`CAST(DecryptByKey(Telefono) AS NVARCHAR(15))`),
-          "Telefono",
-        ],
-        [
-          sequelize.literal(`CAST(DecryptByKey(Correo) AS NVARCHAR(100))`),
-          "Correo",
-        ],
-        [
-          sequelize.literal(`CAST(DecryptByKey(Direccion) AS NVARCHAR(255))`),
-          "Direccion",
-        ],
-        "TipoUsuario",
-      ],
+    const query = `
+      SELECT 
+        PersonaID,
+        CAST(DecryptByKey(Nombre) AS NVARCHAR(100)) AS Nombre,
+        CAST(DecryptByKey(Apellido) AS NVARCHAR(100)) AS Apellido,
+        CAST(DecryptByKey(Identificacion) AS NVARCHAR(20)) AS Identificacion,
+        CAST(DecryptByKey(FechaNacimiento) AS NVARCHAR(10)) AS FechaNacimiento,
+        CAST(DecryptByKey(Telefono) AS NVARCHAR(15)) AS Telefono,
+        CAST(DecryptByKey(Correo) AS NVARCHAR(100)) AS Correo,
+        CAST(DecryptByKey(Direccion) AS NVARCHAR(255)) AS Direccion,
+        TipoUsuario
+      FROM Personas
+      WHERE PersonaID = :id
+    `;
+
+    const [persona] = await sequelize.query(query, {
+      replacements: { id: req.params.id },
+      type: sequelize.QueryTypes.SELECT
     });
 
     if (!persona) {
@@ -227,11 +231,18 @@ const obtenerPersonaPorId = async (req, res) => {
     console.error(error);
     res.status(500).json({ error: "Error al obtener la persona" });
   } finally {
-    await closeSymmetricKey();
+    if (keyOpened) {
+      try {
+        await closeSymmetricKey();
+      } catch (err) {
+        console.error("Error al cerrar la clave simétrica:", err);
+      }
+    }
   }
 };
 
 const actualizarPersona = async (req, res) => {
+  let keyOpened = false;
   try {
     const {
       Nombre,
@@ -253,29 +264,25 @@ const actualizarPersona = async (req, res) => {
       !Correo ||
       !Direccion
     ) {
-      return res
-        .status(400)
-        .json({ error: "Todos los campos son obligatorios" });
+      return res.status(400).json({ error: "Todos los campos son obligatorios" });
     }
 
-    // Consulta SQL directa para actualizar los datos
     const query = `
-            UPDATE Personas
-            SET 
-                Nombre = EncryptByKey(Key_GUID('MySymmetricKey'), CAST(:Nombre AS NVARCHAR(100))),
-                Apellido = EncryptByKey(Key_GUID('MySymmetricKey'), CAST(:Apellido AS NVARCHAR(100))),
-                Identificacion = EncryptByKey(Key_GUID('MySymmetricKey'), CAST(:Identificacion AS NVARCHAR(20))),
-                FechaNacimiento = EncryptByKey(Key_GUID('MySymmetricKey'), CAST(:FechaNacimiento AS NVARCHAR(10))),
-                Telefono = EncryptByKey(Key_GUID('MySymmetricKey'), CAST(:Telefono AS NVARCHAR(15))),
-                Correo = EncryptByKey(Key_GUID('MySymmetricKey'), CAST(:Correo AS NVARCHAR(100))),
-                Direccion = EncryptByKey(Key_GUID('MySymmetricKey'), CAST(:Direccion AS NVARCHAR(255)))
-            WHERE PersonaID = :personaId;
-        `;
+      UPDATE Personas
+      SET 
+          Nombre = EncryptByKey(Key_GUID('MySymmetricKey'), CAST(:Nombre AS NVARCHAR(100))),
+          Apellido = EncryptByKey(Key_GUID('MySymmetricKey'), CAST(:Apellido AS NVARCHAR(100))),
+          Identificacion = EncryptByKey(Key_GUID('MySymmetricKey'), CAST(:Identificacion AS NVARCHAR(20))),
+          FechaNacimiento = EncryptByKey(Key_GUID('MySymmetricKey'), CAST(:FechaNacimiento AS NVARCHAR(10))),
+          Telefono = EncryptByKey(Key_GUID('MySymmetricKey'), CAST(:Telefono AS NVARCHAR(15))),
+          Correo = EncryptByKey(Key_GUID('MySymmetricKey'), CAST(:Correo AS NVARCHAR(100))),
+          Direccion = EncryptByKey(Key_GUID('MySymmetricKey'), CAST(:Direccion AS NVARCHAR(255)))
+      WHERE PersonaID = :personaId;
+    `;
 
-    // Abrir la clave simétrica antes de encriptar
     await openSymmetricKey();
+    keyOpened = true;
 
-    // Ejecutar la consulta
     await sequelize.query(query, {
       replacements: {
         Nombre,
@@ -294,6 +301,14 @@ const actualizarPersona = async (req, res) => {
   } catch (error) {
     console.error(error);
     res.status(500).json({ error: "Error al actualizar la persona" });
+  } finally {
+    if (keyOpened) {
+      try {
+        await closeSymmetricKey();
+      } catch (err) {
+        console.error("Error al cerrar la clave simétrica:", err);
+      }
+    }
   }
 };
 

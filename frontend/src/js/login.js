@@ -55,8 +55,8 @@ document.addEventListener('DOMContentLoaded', () => {
                 
                 // Redirección basada en tipo de usuario
                 const redirectPath = data.user.tipoUsuario === 'administrador' 
-                    ? '../admin/dashboard.html' 
-                    : '../client/dashboard.html';
+                    ? '../../Admin/dashboardAdmin.html' 
+                    : '../../User/dashboardUser.html';
                 
                 window.location.href = redirectPath;
                 

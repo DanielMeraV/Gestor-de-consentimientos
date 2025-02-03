@@ -11,14 +11,15 @@ document.addEventListener('DOMContentLoaded', () => {
     // Botón cancelar
     cancelButton.addEventListener('click', () => {
         if(confirm('¿Está seguro que desea cancelar el proceso?')) {
-            window.location.href = 'index.html';
+            window.location.href = '../../index.html';
         }
     });
 
     // Botón registrar
     registerButton.addEventListener('click', () => {
         if(acceptTermsCheckbox.checked) {
-            window.location.href = 'register.html';
+            window.location.href = '../views/auth/register.html';
+           // window.location.href = './consent.html';
         } else {
             alert('Debe aceptar los términos y condiciones para continuar');
         }

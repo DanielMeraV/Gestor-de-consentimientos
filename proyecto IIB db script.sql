@@ -206,15 +206,6 @@ VALUES
 ('Notificaciones Promocionales', 'Consentimiento para recibir mensajes promocionales'),
 ('Compartición de Datos', 'Aceptación para compartir datos con terceros');
 
--- Datos para RegistroConsentimientos 
-INSERT INTO RegistroConsentimientos (PersonaID, ConsentimientoID, Aceptado, VersionConsentimiento)
-VALUES 
-(1, 1, 1, '1.0'),
-(2, 2, 1, '1.0'),
-(2, 1, 0, '1.0'),
-(3, 3, 1, '2.0'),
-(3, 4, 1, '1.1');
-
 -- ========================================
 -- Creación y configuración del usuario
 -- ========================================
@@ -291,3 +282,71 @@ GO
 
 select * from dbo.AuditoriaPersonas;
 select * from dbo.AuditoriaConsentimientos;
+
+
+------Erik-----------------------------------------
+-----------------------------
+
+-- 🔥 Creación del Procedimiento Almacenado
+CREATE PROCEDURE sp_InsertarRegistroConsentimiento
+    @PersonaID INT,
+    @ConsentimientoID INT,
+    @Aceptado BIT,
+    @VersionConsentimiento NVARCHAR(10),
+    @FechaOtorgamiento DATETIME,
+    @RegistroID INT OUTPUT -- Parámetro de salida para devolver el ID insertado
+AS
+BEGIN
+    SET NOCOUNT ON;
+
+    -- Insertar el registro en la tabla
+    INSERT INTO RegistroConsentimientos (PersonaID, ConsentimientoID, Aceptado, VersionConsentimiento, FechaOtorgamiento)
+    VALUES (@PersonaID, @ConsentimientoID, @Aceptado, @VersionConsentimiento, @FechaOtorgamiento);
+
+    -- Obtener el ID generado
+    SET @RegistroID = SCOPE_IDENTITY();
+END;
+GO
+
+------------------------------------
+
+USE ConsentManagerDB;
+GO
+
+-- 🔹 Abre la clave simétrica
+OPEN SYMMETRIC KEY MySymmetricKey 
+DECRYPTION BY CERTIFICATE MyCertificate;
+GO
+
+-- 🔹 Verifica si la clave está abierta correctamente
+SELECT * FROM sys.openkeys;
+GO
+
+-- 🔹 Si la clave está abierta, ejecuta la actualización
+UPDATE Personas
+SET TipoUsuario = 'administrador' -- Cambiar a 'cliente' o 'administrador'
+WHERE PersonaID = 3; -- Cambia este ID según el usuario que deseas actualizar
+GO
+
+-- 🔹 Cierra la clave después de la operación
+CLOSE SYMMETRIC KEY MySymmetricKey;
+GO
+
+
+CREATE PROCEDURE sp_ActualizarRegistroConsentimiento
+    @RegistroID INT,
+    @Aceptado BIT,
+    @FechaOtorgamiento DATETIME
+AS
+BEGIN
+    SET NOCOUNT ON;
+    
+    UPDATE RegistroConsentimientos 
+    SET Aceptado = @Aceptado,
+        FechaOtorgamiento = @FechaOtorgamiento
+    WHERE RegistroID = @RegistroID;
+
+    -- Devolver el registro actualizado
+    SELECT * FROM RegistroConsentimientos WHERE RegistroID = @RegistroID;
+END;
+GO

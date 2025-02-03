@@ -66,10 +66,15 @@ const PersonaSchema = {
             isIn: [['administrador', 'cliente']],
         },
     },
-    Password: {
+    PasswordHash: {
         type: DataTypes.BLOB,
         allowNull: false,
-        field: 'Password',
+        field: 'PasswordHash',
+    },
+    PasswordSalt: {
+        type: DataTypes.BLOB,
+        allowNull: false,
+        field: 'PasswordSalt',
     },
     IntentosLogin: {
         type: DataTypes.INTEGER,

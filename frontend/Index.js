@@ -8,7 +8,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // Botones de registro e inicio de sesión
     document.getElementById('btnRegistro')?.addEventListener('click', () => 
-        window.location.href = './src/views/auth/lopd.html'
+        window.location.href = './src/LOPDP/lopd.html'
     );
 
     document.getElementById('btnLogin')?.addEventListener('click', () => 
