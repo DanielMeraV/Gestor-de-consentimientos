@@ -4,79 +4,166 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Dashboard Administrativo - BancoDigital</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
     <link rel="stylesheet" href="../styles/dashboardAdmin.css">
 </head>
 <body>
-    <header class="header">
-        <h1>BancoDigital - Panel Administrativo</h1>
-    </header>
-
     <div class="container">
-        <!-- Usuarios Registrados -->
-        <div class="dashboard-section">
-            <h2>Usuarios Registrados</h2>
-            <table id="usuariosTable">
-                <thead>
-                    <tr>
-                        <th>ID</th>
-                        <th>Nombre</th>
-                        <th>Apellido</th>
-                        <th>Identificación</th>
-                        <th>Correo</th>
-                    </tr>
-                </thead>
-                <tbody></tbody>
-            </table>
+        <!-- Sidebar -->
+        <div class="sidebar">
+            <div class="profile">
+                <img src="../images/image.png" alt="Admin Profile" class="profile-img">
+                <h3 id="adminName">Administrador</h3>
+                <p class="role">Panel de Control</p>
+            </div>
+            <ul class="nav-menu">
+                <li class="nav-item active" data-section="users">
+                    <i class="fas fa-users"></i> Usuarios Registrados
+                </li>
+                <li class="nav-item" data-section="audit-personas">
+                    <i class="fas fa-user-shield"></i> Auditoría Personas
+                </li>
+                <li class="nav-item" data-section="audit-consent">
+                    <i class="fas fa-file-contract"></i> Auditoría Consentimientos
+                </li>
+                <li class="nav-item" onclick="showModal('newConsentModal')">
+                    <i class="fas fa-plus-circle"></i> Nuevo Consentimiento
+                </li>
+                <li class="nav-item">
+                    <a href="../../index.html" class="logout-link">
+                        <i class="fas fa-sign-out-alt"></i> Cerrar Sesión
+                    </a>
+                </li>
+            </ul>
         </div>
 
-        <!-- Auditoría Personas -->
-        <div class="dashboard-section">
-            <h2>Auditoría de Personas</h2>
-            <table id="auditoriaPersonasTable">
-                <thead>
-                    <tr>
-                        <th>ID</th>
-                        <th>Persona ID</th>
-                        <th>Acción</th>
-                        <th>Fecha</th>
-                        <th>Detalles</th>
-                    </tr>
-                </thead>
-                <tbody></tbody>
-            </table>
-        </div>
+        <!-- Main Content -->
+        <div class="main-content">
+            <div class="header">
+                <h1>Panel de Administración</h1>
+                <div class="date-time" id="currentDateTime"></div>
+            </div>
 
-        <!-- Auditoría Consentimientos -->
-        <div class="dashboard-section">
-            <h2>Auditoría de Consentimientos</h2>
-            <table id="auditoriaConsentimientosTable">
-                <thead>
-                    <tr>
-                        <th>ID</th>
-                        <th>Registro ID</th>
-                        <th>Persona ID</th>
-                        <th>Consentimiento ID</th>
-                        <th>Acción</th>
-                        <th>Fecha</th>
-                    </tr>
-                </thead>
-                <tbody></tbody>
-            </table>
-        </div>
+            <!-- Dashboard Stats -->
+            <div class="stats-container">
+                <div class="stat-card">
+                    <i class="fas fa-users"></i>
+                    <div class="stat-info">
+                        <h3>Total Usuarios</h3>
+                        <div class="stat-value" id="totalUsers">0</div>
+                    </div>
+                </div>
+                <div class="stat-card">
+                    <i class="fas fa-file-contract"></i>
+                    <div class="stat-info">
+                        <h3>Consentimientos</h3>
+                        <div class="stat-value" id="totalConsents">0</div>
+                    </div>
+                </div>
+                <div class="stat-card">
+                    <i class="fas fa-clock"></i>
+                    <div class="stat-info">
+                        <h3>Últimas 24h</h3>
+                        <div class="stat-value" id="last24hActivity">0</div>
+                    </div>
+                </div>
+            </div>
 
-        <!-- Formulario para agregar consentimientos -->
-        <div class="dashboard-section">
+            <!-- Content Sections -->
+            <div class="content-section active" id="users-section">
+                <div class="section-header">
+                    <h2>Usuarios Registrados</h2>
+                    <div class="search-bar">
+                        <input type="text" placeholder="Buscar usuario..." id="searchUsers">
+                        <i class="fas fa-search"></i>
+                    </div>
+                </div>
+                <div class="table-container">
+                    <table id="usuariosTable">
+                        <thead>
+                            <tr>
+                                <th>ID</th>
+                                <th>Nombre</th>
+                                <th>Apellido</th>
+                                <th>Identificación</th>
+                                <th>Correo</th>
+                                <th>Acciones</th>
+                            </tr>
+                        </thead>
+                        <tbody></tbody>
+                    </table>
+                </div>
+            </div>
+
+            <div class="content-section" id="audit-personas-section">
+                <div class="section-header">
+                    <h2>Auditoría de Personas</h2>
+                    <div class="search-bar">
+                        <input type="text" placeholder="Buscar en auditoría..." id="searchAuditPersonas">
+                        <i class="fas fa-search"></i>
+                    </div>
+                </div>
+                <div class="table-container">
+                    <table id="auditoriaPersonasTable">
+                        <thead>
+                            <tr>
+                                <th>ID</th>
+                                <th>Persona ID</th>
+                                <th>Acción</th>
+                                <th>Fecha</th>
+                                <th>Detalles</th>
+                            </tr>
+                        </thead>
+                        <tbody></tbody>
+                    </table>
+                </div>
+            </div>
+
+            <div class="content-section" id="audit-consent-section">
+                <div class="section-header">
+                    <h2>Auditoría de Consentimientos</h2>
+                    <div class="search-bar">
+                        <input type="text" placeholder="Buscar en consentimientos..." id="searchAuditConsent">
+                        <i class="fas fa-search"></i>
+                    </div>
+                </div>
+                <div class="table-container">
+                    <table id="auditoriaConsentimientosTable">
+                        <thead>
+                            <tr>
+                                <th>ID</th>
+                                <th>Registro ID</th>
+                                <th>Persona ID</th>
+                                <th>Consentimiento ID</th>
+                                <th>Acción</th>
+                                <th>Fecha</th>
+                            </tr>
+                        </thead>
+                        <tbody></tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal para Nuevo Consentimiento -->
+    <div id="newConsentModal" class="modal">
+        <div class="modal-content">
+            <span class="close-modal" onclick="closeModal('newConsentModal')">&times;</span>
             <h2>Agregar Nuevo Consentimiento</h2>
             <form id="consentimientoForm">
                 <div class="form-group">
-                    <label for="nombreConsentimiento">Nombre del Consentimiento:</label>
+                    <label for="nombreConsentimiento">Nombre del Consentimiento</label>
                     <input type="text" id="nombreConsentimiento" required>
                 </div>
                 <div class="form-group">
-                    <label for="descripcionConsentimiento">Descripción:</label>
+                    <label for="descripcionConsentimiento">Descripción</label>
                     <textarea id="descripcionConsentimiento" required></textarea>
                 </div>
-                <button type="submit">Agregar Consentimiento</button>
+                <div class="form-actions">
+                    <button type="button" onclick="closeModal('newConsentModal')" class="btn-secondary">Cancelar</button>
+                    <button type="submit" class="btn-primary">Guardar Consentimiento</button>
+                </div>
             </form>
         </div>
     </div>
