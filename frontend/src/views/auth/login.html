@@ -42,7 +42,66 @@
             <br>
             <button type="button" class="btn-submit" onclick="window.location.href='../../../Index.html';">
                 <span class="button-text">Regresar</span>
+            </button><!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Iniciar Sesión</title>
+    <link rel="stylesheet" href="../../styles/login.css">
+    <link rel="icon" type="image/png" href="../../img/favicon.png">
+</head>
+<body>
+    <div class="login-container">
+        <h2>Iniciar Sesión</h2>
+        
+        <form id="loginForm">
+            <div class="form-group">
+                <label for="identificacion">Identificación</label>
+                <input type="text" id="identificacion" name="identificacion" required pattern="[0-9]{10,11}">
+                <span class="error-message" id="identificacionError"></span>
+            </div>
+
+            <div class="form-group">
+                <label for="password">Contraseña</label>
+                <div class="password-input-container">
+                    <input type="password" id="password" name="password" required pattern="^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&])[A-Za-z\d@$!%*?&]{8,}$">
+                    <button type="button" class="toggle-password" aria-label="Ver contraseña">
+                        <i class="fas fa-eye"></i>
+                    </button>
+                </div>
+                <span class="error-message" id="passwordError"></span>
+            </div>
+
+            <!-- Contenedor para errores generales -->
+            <div class="error-container">
+                <span class="error-message" id="loginError"></span>
+                <span class="error-message" id="serverError"></span>
+            </div>
+
+            <!-- Un solo botón submit dentro del form -->
+            <button type="submit" class="btn-submit">
+                <span class="button-text">Iniciar Sesión</span>
+                <span class="spinner" style="display: none;"></span>
             </button>
+            <br>
+            <button type="button" class="btn-submit" onclick="window.location.href='../../../Index.html';">
+                <span class="button-text">Regresar</span>
+            </button>
+            
+        </form>
+
+        <div class="register-link">
+            ¿No tienes una cuenta? <a href="register.html">Regístrate aquí</a>
+        </div>
+        
+    </div>
+
+    <!-- Asegúrate de que el script de FontAwesome se cargue correctamente -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/js/all.min.js" integrity="sha512-4V4c0nrJAEBR7yR+YvFzTNEQzIw7+9ZL6Ku3Y+DfPTU+ZL29fzOzOc5fTR0FgJb2ZWQX0p2g1JwqVtKk+g==" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
+    <script src="../../js/login.js"></script>
+</body>
+</html>
             
         </form>
 
