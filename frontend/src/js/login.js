@@ -70,6 +70,7 @@ document.addEventListener("DOMContentLoaded", () => {
                 showError(data.error, "loginError");
                 if (data.tiempoBloqueo) {
                     startBlockTimer(data.tiempoBloqueo);
+                    document.querySelector('.btn-submit').disabled = true;
                 }
             } else if (response.status === 401) {
                 // Credenciales inválidas con contador de intentos
@@ -130,25 +131,41 @@ function handleInvalidCredentials(errorMessage) {
   setTimeout(() => loginForm.classList.remove("shake"), 500);
 }
 
+function toggleFormInputs(disabled) {
+  const identificacionInput = document.getElementById('identificacion');
+  const passwordInput = document.getElementById('password');
+  const togglePasswordButton = document.querySelector('.toggle-password');
+  
+  identificacionInput.disabled = disabled;
+  passwordInput.disabled = disabled;
+  if (togglePasswordButton) {
+      togglePasswordButton.disabled = disabled;
+  }
+}
+
+// Modificar la función startBlockTimer
 function startBlockTimer(seconds) {
-    const loginError = document.getElementById('loginError');
-    let timeLeft = seconds;
-    
-    // Limpiar cualquier timer existente
-    if (window.blockTimer) {
-        clearInterval(window.blockTimer);
-    }
-    
-    window.blockTimer = setInterval(() => {
-        loginError.textContent = `Cuenta bloqueada. Intente nuevamente en ${timeLeft} segundos`;
-        
-        if (timeLeft <= 0) {
-            clearInterval(window.blockTimer);
-            loginError.textContent = 'Ya puede intentar iniciar sesión nuevamente';
-            window.blockTimer = null;
-        }
-        timeLeft--;
-    }, 1000);
+  const loginError = document.getElementById('loginError');
+  const loginButton = document.querySelector('.login-btn');
+  let timeLeft = seconds;
+  
+  loginButton.disabled = true;
+  toggleFormInputs(true);
+  
+  if (window.blockTimer) clearInterval(window.blockTimer);
+  
+  window.blockTimer = setInterval(() => {
+      loginError.textContent = `Cuenta bloqueada. Intente nuevamente en ${timeLeft} segundos`;
+      
+      if (timeLeft <= 0) {
+          clearInterval(window.blockTimer);
+          loginError.textContent = 'Ya puede intentar iniciar sesión nuevamente';
+          loginButton.disabled = false;
+          toggleFormInputs(false);
+          window.blockTimer = null;
+      }
+      timeLeft--;
+  }, 1000);
 }
 
 function updateBlockTimer(seconds, element) {
