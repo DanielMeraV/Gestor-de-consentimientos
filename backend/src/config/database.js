@@ -1,4 +1,3 @@
-// database.js
 const { Sequelize } = require('sequelize');
 require('dotenv').config();
 
@@ -14,7 +13,8 @@ const sequelize = new Sequelize(
         dialectOptions: {
             options: {
                 trustServerCertificate: true,
-                encrypt: true,
+                encrypt: false, // 🔥 Desactiva encriptación si no se requiere
+                enableArithAbort: true, // 🔥 Previene errores en SQL Server
             }
         },
         pool: {

@@ -65,7 +65,29 @@ const PersonaSchema = {
         validate: {
             isIn: [['administrador', 'cliente']],
         },
+    },
+    PasswordHash: {
+        type: DataTypes.BLOB,
+        allowNull: false,
+        field: 'PasswordHash',
+    },
+    PasswordSalt: {
+        type: DataTypes.BLOB,
+        allowNull: false,
+        field: 'PasswordSalt',
+    },
+    IntentosLogin: {
+        type: DataTypes.INTEGER,
+        allowNull: false,
+        defaultValue: 0,
+        field: 'IntentosLogin'
+    },
+    BloqueoHasta: {
+        type: DataTypes.DATE,
+        allowNull: true,
+        field: 'BloqueoHasta'
     }
+
 };
 
 module.exports = { Persona, PersonaSchema };

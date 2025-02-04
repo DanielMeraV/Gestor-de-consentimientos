@@ -3,18 +3,14 @@
 -- ========================================
 CREATE DATABASE ConsentManagerDB;
 GO
-
 CREATE DATABASE ConsentManagerAuditDB;
 GO
 
--- ========================================
--- Uso de la Base de Datos Principal
--- ========================================
 USE ConsentManagerDB;
 GO
 
 -- ========================================
--- Creación de clave maestra y certificado para encriptación
+-- Creación de clave maestra y certificado
 -- ========================================
 CREATE MASTER KEY ENCRYPTION BY PASSWORD = 'PruebaSwSeguroIIB2024B';
 GO
@@ -28,20 +24,23 @@ ENCRYPTION BY CERTIFICATE MyCertificate;
 GO
 
 -- ========================================
--- Creación de Tablas en ConsentManagerDB
+-- Creación de Tablas con nueva estructura
 -- ========================================
 CREATE TABLE Personas (
     PersonaID INT IDENTITY(1,1) PRIMARY KEY,
     Nombre VARBINARY(MAX) NOT NULL,
     Apellido VARBINARY(MAX) NOT NULL,
     Identificacion VARBINARY(MAX) NOT NULL,
+    PasswordHash VARBINARY(256) NOT NULL,  -- Almacena el hash PBKDF2
+    PasswordSalt VARBINARY(32) NOT NULL,   -- Salt único por usuario
     FechaNacimiento VARBINARY(MAX) NOT NULL,
     Telefono VARBINARY(MAX),
     Correo VARBINARY(MAX),
     Direccion VARBINARY(MAX),
-    TipoUsuario NVARCHAR(20) CHECK(TipoUsuario IN ('administrador', 'cliente')) DEFAULT 'cliente'
+    TipoUsuario NVARCHAR(20) CHECK(TipoUsuario IN ('administrador', 'cliente')) DEFAULT 'cliente',
+	IntentosLogin INT DEFAULT 0,
+    BloqueoHasta DATETIME NULL
 );
-
 CREATE TABLE Consentimientos (
     ConsentimientoID INT IDENTITY(1,1) PRIMARY KEY,
     NombreConsentimiento NVARCHAR(100) NOT NULL,
@@ -195,42 +194,6 @@ GO
 -- Abrir la clave para inserción
 OPEN SYMMETRIC KEY MySymmetricKey DECRYPTION BY CERTIFICATE MyCertificate;
 
--- Datos para Personas
-INSERT INTO Personas (
-    Nombre, Apellido, Identificacion, FechaNacimiento, 
-    Telefono, Correo, Direccion, TipoUsuario
-)
-VALUES 
-(
-    EncryptByKey(Key_GUID('MySymmetricKey'), CAST('Admin' AS NVARCHAR(100))),
-    EncryptByKey(Key_GUID('MySymmetricKey'), CAST('Admin' AS NVARCHAR(100))),
-    EncryptByKey(Key_GUID('MySymmetricKey'), CAST('1723186952' AS NVARCHAR(20))),
-    EncryptByKey(Key_GUID('MySymmetricKey'), CAST('2001-07-16' AS NVARCHAR(10))),
-    EncryptByKey(Key_GUID('MySymmetricKey'), CAST('0998457812' AS NVARCHAR(15))),
-    EncryptByKey(Key_GUID('MySymmetricKey'), CAST('admin@gmail.com' AS NVARCHAR(100))),
-    EncryptByKey(Key_GUID('MySymmetricKey'), CAST('Calle 1, Ciudad A' AS NVARCHAR(255))),
-    'administrador'
-),
-(
-    EncryptByKey(Key_GUID('MySymmetricKey'), CAST('Juan' AS NVARCHAR(100))),
-    EncryptByKey(Key_GUID('MySymmetricKey'), CAST('Pérez' AS NVARCHAR(100))),
-    EncryptByKey(Key_GUID('MySymmetricKey'), CAST('1234567890' AS NVARCHAR(20))),
-    EncryptByKey(Key_GUID('MySymmetricKey'), CAST('1990-05-20' AS NVARCHAR(10))),
-    EncryptByKey(Key_GUID('MySymmetricKey'), CAST('0987654321' AS NVARCHAR(15))),
-    EncryptByKey(Key_GUID('MySymmetricKey'), CAST('juan.perez@mail.com' AS NVARCHAR(100))),
-    EncryptByKey(Key_GUID('MySymmetricKey'), CAST('Calle 2, Ciudad B' AS NVARCHAR(255))),
-    'cliente'
-),
-(
-    EncryptByKey(Key_GUID('MySymmetricKey'), CAST('Ana' AS NVARCHAR(100))),
-    EncryptByKey(Key_GUID('MySymmetricKey'), CAST('García' AS NVARCHAR(100))),
-    EncryptByKey(Key_GUID('MySymmetricKey'), CAST('0987654321' AS NVARCHAR(20))),
-    EncryptByKey(Key_GUID('MySymmetricKey'), CAST('1985-08-15' AS NVARCHAR(10))),
-    EncryptByKey(Key_GUID('MySymmetricKey'), CAST('0976543210' AS NVARCHAR(15))),
-    EncryptByKey(Key_GUID('MySymmetricKey'), CAST('ana.garcia@mail.com' AS NVARCHAR(100))),
-    EncryptByKey(Key_GUID('MySymmetricKey'), CAST('Calle 3, Ciudad C' AS NVARCHAR(255))),
-    'cliente'
-);
 
 CLOSE SYMMETRIC KEY MySymmetricKey;
 
@@ -242,15 +205,6 @@ VALUES
 ('Cookies', 'Autorización para el uso de cookies en la aplicación'),
 ('Notificaciones Promocionales', 'Consentimiento para recibir mensajes promocionales'),
 ('Compartición de Datos', 'Aceptación para compartir datos con terceros');
-
--- Datos para RegistroConsentimientos 
-INSERT INTO RegistroConsentimientos (PersonaID, ConsentimientoID, Aceptado, VersionConsentimiento)
-VALUES 
-(1, 1, 1, '1.0'),
-(2, 2, 1, '1.0'),
-(2, 1, 0, '1.0'),
-(3, 3, 1, '2.0'),
-(3, 4, 1, '1.1');
 
 -- ========================================
 -- Creación y configuración del usuario
@@ -305,11 +259,15 @@ SELECT
     CAST(DecryptByKey(Nombre) AS NVARCHAR(100)) AS Nombre,
     CAST(DecryptByKey(Apellido) AS NVARCHAR(100)) AS Apellido,
     CAST(DecryptByKey(Identificacion) AS NVARCHAR(20)) AS Identificacion,
+    PasswordHash,
+	PasswordSalt,
     CAST(DecryptByKey(FechaNacimiento) AS NVARCHAR(10)) AS FechaNacimiento,
     CAST(DecryptByKey(Telefono) AS NVARCHAR(15)) AS Telefono,
     CAST(DecryptByKey(Correo) AS NVARCHAR(100)) AS Correo,
     CAST(DecryptByKey(Direccion) AS NVARCHAR(255)) AS Direccion,
-    TipoUsuario
+    TipoUsuario,
+	IntentosLogin,
+    BloqueoHasta
 FROM Personas;
 
 CLOSE SYMMETRIC KEY MySymmetricKey;
@@ -324,3 +282,71 @@ GO
 
 select * from dbo.AuditoriaPersonas;
 select * from dbo.AuditoriaConsentimientos;
+
+
+------Erik-----------------------------------------
+-----------------------------
+
+-- 🔥 Creación del Procedimiento Almacenado
+CREATE PROCEDURE sp_InsertarRegistroConsentimiento
+    @PersonaID INT,
+    @ConsentimientoID INT,
+    @Aceptado BIT,
+    @VersionConsentimiento NVARCHAR(10),
+    @FechaOtorgamiento DATETIME,
+    @RegistroID INT OUTPUT -- Parámetro de salida para devolver el ID insertado
+AS
+BEGIN
+    SET NOCOUNT ON;
+
+    -- Insertar el registro en la tabla
+    INSERT INTO RegistroConsentimientos (PersonaID, ConsentimientoID, Aceptado, VersionConsentimiento, FechaOtorgamiento)
+    VALUES (@PersonaID, @ConsentimientoID, @Aceptado, @VersionConsentimiento, @FechaOtorgamiento);
+
+    -- Obtener el ID generado
+    SET @RegistroID = SCOPE_IDENTITY();
+END;
+GO
+
+------------------------------------
+
+USE ConsentManagerDB;
+GO
+
+-- 🔹 Abre la clave simétrica
+OPEN SYMMETRIC KEY MySymmetricKey 
+DECRYPTION BY CERTIFICATE MyCertificate;
+GO
+
+-- 🔹 Verifica si la clave está abierta correctamente
+SELECT * FROM sys.openkeys;
+GO
+
+-- 🔹 Si la clave está abierta, ejecuta la actualización
+UPDATE Personas
+SET TipoUsuario = 'administrador' -- Cambiar a 'cliente' o 'administrador'
+WHERE PersonaID = 3; -- Cambia este ID según el usuario que deseas actualizar
+GO
+
+-- 🔹 Cierra la clave después de la operación
+CLOSE SYMMETRIC KEY MySymmetricKey;
+GO
+
+
+CREATE PROCEDURE sp_ActualizarRegistroConsentimiento
+    @RegistroID INT,
+    @Aceptado BIT,
+    @FechaOtorgamiento DATETIME
+AS
+BEGIN
+    SET NOCOUNT ON;
+    
+    UPDATE RegistroConsentimientos 
+    SET Aceptado = @Aceptado,
+        FechaOtorgamiento = @FechaOtorgamiento
+    WHERE RegistroID = @RegistroID;
+
+    -- Devolver el registro actualizado
+    SELECT * FROM RegistroConsentimientos WHERE RegistroID = @RegistroID;
+END;
+GO

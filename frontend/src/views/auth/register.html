@@ -1,0 +1,94 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Registro de Usuario</title>
+    <link rel="stylesheet" href="../../styles/register.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+</head>
+<body>
+    <div class="registro-container">
+        <h2>Registro de Usuario</h2>
+        
+        <form id="registroForm">
+            <div class="form-group">
+                <label for="nombre">Nombre *</label>
+                <input type="text" id="nombre" name="nombre" required>
+                <span class="error-message" id="nombreError"></span>
+            </div>
+
+            <div class="form-group">
+                <label for="apellido">Apellido *</label>
+                <input type="text" id="apellido" name="apellido" required>
+                <span class="error-message" id="apellidoError"></span>
+            </div>
+
+            <div class="form-group">
+                <label for="identificacion">Identificación *</label>
+                <input type="text" id="identificacion" name="identificacion" required>
+                <span class="error-message" id="identificacionError"></span>
+            </div>
+
+            <div class="form-group">
+                <label for="fechaNacimiento">Fecha de Nacimiento *</label>
+                <input type="date" id="fechaNacimiento" name="fechaNacimiento" required>
+                <span class="error-message" id="fechaNacimientoError"></span>
+            </div>
+            
+
+            <div class="form-group">
+                <label for="password">Contraseña *</label>
+                <div class="password-input-container">
+                    <input type="password" id="password" name="password" required>
+                    <button type="button" class="toggle-password" aria-label="Ver contraseña">
+                        <i class="fas fa-eye"></i>
+                    </button>
+                </div>
+                <span class="error-message" id="passwordError"></span>
+                <span class="password-requirements">
+                    La contraseña debe tener al menos 8 caracteres, incluir mayúsculas, 
+                    minúsculas, números y caracteres especiales
+                </span>
+            </div>
+
+            <div class="form-group">
+                <label for="confirmPassword">Confirmar Contraseña *</label>
+                <div class="password-input-container">
+                    <input type="password" id="confirmPassword" name="confirmPassword" required>
+                    <button type="button" class="toggle-password" aria-label="Ver contraseña">
+                        <i class="fas fa-eye"></i>
+                    </button>
+                </div>
+                <span class="error-message" id="confirmPasswordError"></span>
+            </div>
+
+            <div class="form-group">
+                <label for="telefono">Teléfono</label>
+                <input type="tel" id="telefono" name="telefono">
+                <span class="error-message" id="telefonoError"></span>
+            </div>
+
+            <div class="form-group">
+                <label for="correo">Correo Electrónico</label>
+                <input type="email" id="correo" name="correo">
+                <span class="error-message" id="correoError"></span>
+            </div>
+
+            <div class="form-group">
+                <label for="direccion">Dirección</label>
+                <input type="text" id="direccion" name="direccion">
+                <span class="error-message" id="direccionError"></span>
+            </div>
+
+            <button type="submit" class="btn-submit">Registrarse</button>
+        </form>
+
+        <div class="login-link">
+            ¿Ya tienes una cuenta? <a href="login.html">Iniciar Sesión</a>
+        </div>
+    </div>
+
+    <script src="../../js/register.js"></script>
+</body>
+</html>

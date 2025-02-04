@@ -1,0 +1,154 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dashboard - BancoDigital</title>
+    <link rel="stylesheet" href="./styles/dashboardUser.css">
+</head>
+<body>
+    <div class="container">
+        <div class="sidebar">
+            <div class="profile">
+                <img src="./assets/User.png" alt="Profile" class="profile-img">
+                <h3 id="userName">Nombre Usuario</h3>
+            </div>
+            <ul class="nav-menu">
+                <li class="nav-item"><a href="editarInformacion.html">📝 Editar Información</a></li>
+                <li class="nav-item"><a href="consentUser.html">⚙️ Editar Consentimientos</a></li>
+                <li class="nav-item"><a href="#" onclick="showPdfModal(); return false;">📜 LOPDP</a></li>
+                <li class="nav-item"><a href="../../index.html">🚪 Cerrar Sesión</a></li>
+            </ul>
+              
+        </div>
+
+        <div class="main-content">
+            <div class="header">
+                <h1>Mi Dashboard</h1>
+            </div>
+
+            <div class="quick-access">
+                <button class="quick-btn" onclick="showModal('infoModal')">
+                    📋 Información Personal
+                </button>
+                <button class="quick-btn" onclick="showModal('consentModal')">
+                    📜 Mis Consentimientos
+                </button>
+            </div>
+
+            <div class="cards-container">
+                <div class="bank-card">
+                    <h3>Tarjeta Débito</h3>
+                    <div class="card-content">
+                        <div class="chip"></div>
+                        <div class="card-number">**** **** **** 1234</div>
+                        <div class="card-details">
+                            <div id="cardHolder">NOMBRE APELLIDO</div>
+                            <div class="card-expiry">12/25</div>
+                        </div>
+                        <div class="card-brand">VISA</div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="stats-container">
+                <div class="stat-card">
+                    <h3>Gastos del Mes</h3>
+                    <div class="stat-value">$2,450.00</div>
+                    <p>↑ 12% vs mes anterior</p>
+                </div>
+                <div class="stat-card">
+                    <h3>Ingresos</h3>
+                    <div class="stat-value">$5,780.00</div>
+                    <p>↑ 8% vs mes anterior</p>
+                </div>
+                <div class="stat-card">
+                    <h3>Ahorros</h3>
+                    <div class="stat-value">$12,340.00</div>
+                    <p>Meta: $15,000.00</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal Información Personal -->
+    <div id="infoModal" class="modal">
+        <div class="modal-content">
+            <span class="close-modal" onclick="closeModal('infoModal')">&times;</span>
+            <h2>Información Personal</h2>
+            <div id="userInfo">
+                <!-- Se llenará con JavaScript -->
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal Consentimientos -->
+    <div id="consentModal" class="modal">
+        <div class="modal-content">
+            <span class="close-modal" onclick="closeModal('consentModal')">&times;</span>
+            <h2>Mis Consentimientos</h2>
+            <table class="consent-table">
+                <thead>
+                    <tr>
+                        <th>Tipo de Consentimiento</th>
+                        <th>Estado</th>
+                        <th>Fecha</th>
+                        <th>Versión</th>
+                    </tr>
+                </thead>
+                <tbody id="consentimientosTable">
+                    <!-- Se llenará con JavaScript -->
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <!-- Modifica el modal del PDF así -->
+    <div id="pdfModal" class="modal">
+        <div class="modal-content pdf-content">
+            <span class="close-modal" onclick="closePdfModal()">&times;</span>
+            <h2>Ley Orgánica de Protección de Datos Personales</h2>
+            <iframe id="pdfViewer" src="" width="100%" height="500px" frameborder="0"></iframe>
+        </div>
+    </div>
+
+    <script>
+         // Mantén tus funciones modales existentes
+    function showModal(modalId) {
+        document.getElementById(modalId).style.display = 'flex';
+    }
+
+    function closeModal(modalId) {
+        document.getElementById(modalId).style.display = 'none';
+    }
+
+    // Función específica para cerrar el modal del PDF
+    function closePdfModal() {
+        const modal = document.getElementById('pdfModal');
+        const pdfViewer = document.getElementById('pdfViewer');
+        modal.style.display = 'none';
+        pdfViewer.src = ''; // Limpia el src del iframe
+    }
+
+    // Función para mostrar el PDF
+    function showPdfModal() {
+        const modal = document.getElementById('pdfModal');
+        const pdfViewer = document.getElementById('pdfViewer');
+        pdfViewer.src = './assets/ley_organica_de_proteccion_de_datos_personales.pdf';
+        modal.style.display = 'flex';
+    }
+
+    // Modificar el evento de clic para cerrar
+    window.onclick = function(event) {
+        if (event.target.className === 'modal') {
+            if (event.target.id === 'pdfModal') {
+                closePdfModal();
+            } else {
+                closeModal(event.target.id);
+            }
+        }
+    }
+    </script>
+    <script src="./js/dashboardUser.js"></script>
+</body>
+</html>

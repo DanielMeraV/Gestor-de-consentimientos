@@ -1,4 +1,5 @@
 const { Model, DataTypes } = require('sequelize');
+const { sequelize } = require('../config/database'); // 🔥 Importación correcta
 
 const RegistroConsentimiento_TB = 'RegistroConsentimientos';
 
@@ -51,9 +52,11 @@ const RegistroConsentimientoSchema = {
     },
     FechaOtorgamiento: {
         type: DataTypes.DATE,
-        defaultValue: DataTypes.NOW,
+        allowNull: false,
+        defaultValue: DataTypes.NOW, // ✅ Alternativa para evitar problemas con GETDATE()
         field: 'FechaOtorgamiento',
-    } 
+    }
+    
 };
 
 module.exports = { RegistroConsentimiento, RegistroConsentimientoSchema };
