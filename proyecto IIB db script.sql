@@ -350,3 +350,56 @@ BEGIN
     SELECT * FROM RegistroConsentimientos WHERE RegistroID = @RegistroID;
 END;
 GO
+
+
+-- ========================================
+USE ConsentManagerDB;
+GO
+
+-- Verificar la estructura actual
+SELECT 
+    COLUMN_NAME,
+    DATA_TYPE,
+    IS_NULLABLE,
+    COLUMN_DEFAULT
+FROM INFORMATION_SCHEMA.COLUMNS 
+WHERE TABLE_NAME = 'Personas';
+
+-- Asegurarse de que IntentosLogin tenga el valor por defecto correcto
+IF EXISTS (
+    SELECT * FROM sys.default_constraints
+    WHERE parent_object_id = OBJECT_ID('Personas')
+    AND col_name(parent_object_id, parent_column_id) = 'IntentosLogin'
+)
+BEGIN
+    -- Eliminar constraint existente
+    DECLARE @ConstraintName nvarchar(200);
+    SELECT @ConstraintName = name
+    FROM sys.default_constraints
+    WHERE parent_object_id = OBJECT_ID('Personas')
+    AND col_name(parent_object_id, parent_column_id) = 'IntentosLogin';
+    
+    EXEC('ALTER TABLE Personas DROP CONSTRAINT ' + @ConstraintName);
+END
+
+-- Modificar la columna IntentosLogin
+ALTER TABLE Personas
+ALTER COLUMN IntentosLogin INT NOT NULL;
+
+-- Agregar nuevo constraint DEFAULT
+ALTER TABLE Personas
+ADD CONSTRAINT DF_Personas_IntentosLogin 
+DEFAULT 0 FOR IntentosLogin;
+
+-- Asegurarse de que BloqueoHasta sea nullable y del tipo correcto
+ALTER TABLE Personas
+ALTER COLUMN BloqueoHasta DATETIME NULL;
+
+-- Actualizar registros existentes
+UPDATE Personas
+SET IntentosLogin = 0
+WHERE IntentosLogin IS NULL;
+
+UPDATE Personas
+SET BloqueoHasta = NULL
+WHERE BloqueoHasta IS NOT NULL;

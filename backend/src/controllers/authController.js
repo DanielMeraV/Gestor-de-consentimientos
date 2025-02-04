@@ -1,6 +1,6 @@
 const { Persona } = require("../models");
 const { sequelize } = require("../config/database");
-const crypto = require('crypto');
+const crypto = require("crypto");
 const jwt = require("jsonwebtoken");
 require("dotenv").config();
 
@@ -13,7 +13,7 @@ const openSymmetricKey = async () => {
       FROM sys.openkeys 
       WHERE key_name = 'MySymmetricKey'
     `);
-    
+
     // Si la clave no está abierta, ábrela
     if (keyStatus[0].count === 0) {
       await sequelize.query(
@@ -35,7 +35,7 @@ const closeSymmetricKey = async () => {
       FROM sys.openkeys 
       WHERE key_name = 'MySymmetricKey'
     `);
-    
+
     // Solo cierra la clave si está abierta
     if (keyStatus[0].count > 0) {
       await sequelize.query("CLOSE SYMMETRIC KEY MySymmetricKey");
@@ -49,7 +49,7 @@ const closeSymmetricKey = async () => {
 // Función para derivar clave usando PBKDF2
 const deriveKey = (password, salt) => {
   return new Promise((resolve, reject) => {
-    crypto.pbkdf2(password, salt, 100000, 64, 'sha512', (err, derivedKey) => {
+    crypto.pbkdf2(password, salt, 100000, 64, "sha512", (err, derivedKey) => {
       if (err) reject(err);
       resolve(derivedKey);
     });
@@ -80,90 +80,139 @@ const login = async (req, res) => {
 
     const [persona] = await sequelize.query(query, {
       replacements: { identificacion },
-      type: sequelize.QueryTypes.SELECT
+      type: sequelize.QueryTypes.SELECT,
     });
 
-    console.log("Usuario encontrado:", persona ? {
-      id: persona.PersonaID,
-      nombre: persona.Nombre,
-      identificacion: persona.DecryptedIdentificacion,
-      tipoUsuario: persona.TipoUsuario,
-      tieneHash: !!persona.PasswordHash,
-      tieneSalt: !!persona.PasswordSalt
-    } : 'No encontrado');
+    console.log(
+      "Usuario encontrado:",
+      persona
+        ? {
+            id: persona.PersonaID,
+            nombre: persona.Nombre,
+            identificacion: persona.DecryptedIdentificacion,
+            tipoUsuario: persona.TipoUsuario,
+            tieneHash: !!persona.PasswordHash,
+            tieneSalt: !!persona.PasswordSalt,
+          }
+        : "No encontrado"
+    );
 
     if (!persona) {
       console.log("Usuario no encontrado");
       return res.status(401).json({ error: "Credenciales inválidas" });
     }
 
-    // Verificar si la cuenta está bloqueada
-    if (persona.BloqueoHasta && new Date() < new Date(persona.BloqueoHasta)) {
-      const tiempoRestante = Math.ceil((new Date(persona.BloqueoHasta) - new Date()) / 1000 / 60);
+// Verificar si la cuenta está bloqueada
+if (persona.BloqueoHasta) {
+  const fechaBloqueo = new Date(persona.BloqueoHasta);
+  const ahora = new Date();
+  
+  if (ahora < fechaBloqueo) {
+      // La cuenta aún está bloqueada
+      const tiempoRestante = Math.ceil((fechaBloqueo - ahora) / 1000);
+      console.log('Cuenta bloqueada:', {
+          bloqueoHasta: fechaBloqueo,
+          tiempoRestante
+      });
+      
       return res.status(403).json({ 
-        error: `Cuenta bloqueada. Intente nuevamente en ${tiempoRestante} minutos.` 
+          error: `Cuenta bloqueada. Intente nuevamente en ${tiempoRestante} segundos.`,
+          tiempoRestante: tiempoRestante
       });
-    }
-
-    // Si ya pasó el tiempo de bloqueo, reiniciamos los intentos
-    if (persona.BloqueoHasta && new Date() >= new Date(persona.BloqueoHasta)) {
-      await sequelize.query(`
-        UPDATE Personas 
-        SET IntentosLogin = 0, BloqueoHasta = NULL 
-        WHERE PersonaID = :personaId
-      `, {
-        replacements: { personaId: persona.PersonaID }
-      });
-      persona.IntentosLogin = 0;
-    }
-
-    const inputHash = await deriveKey(password, persona.PasswordSalt);
-    
-    if (!crypto.timingSafeEqual(inputHash, persona.PasswordHash)) {
-      // Incrementar contador de intentos
-      const nuevosIntentos = (persona.IntentosLogin || 0) + 1;
-      let bloqueoHasta = null;
-
-      if (nuevosIntentos >= 3) {
-        // Bloquear por 15 minutos
-        bloqueoHasta = new Date(Date.now() + 15 * 60000);
+  } else {
+      // El bloqueo ya expiró, limpiar el estado
+      try {
+          await sequelize.query(`
+              UPDATE Personas 
+              SET IntentosLogin = 0, 
+                  BloqueoHasta = NULL 
+              WHERE PersonaID = :personaId
+          `, {
+              replacements: { personaId: persona.PersonaID }
+          });
+          
+          // Actualizar el objeto persona en memoria
+          persona.IntentosLogin = 0;
+          persona.BloqueoHasta = null;
+          
+          console.log('Bloqueo expirado, estado limpiado');
+      } catch (error) {
+          console.error('Error al limpiar estado de bloqueo:', error);
+          throw error;
       }
+  }
+}
+  
+  const inputHash = await deriveKey(password, persona.PasswordSalt);
 
-      await sequelize.query(`
-        UPDATE Personas 
-        SET IntentosLogin = :intentos, 
-            BloqueoHasta = :bloqueoHasta
-        WHERE PersonaID = :personaId
-      `, {
-        replacements: { 
-          intentos: nuevosIntentos,
-          bloqueoHasta: bloqueoHasta,
-          personaId: persona.PersonaID
-        }
-      });
+// Después de derivar la clave
+console.log('Verificando credenciales:', {
+  tieneInputHash: !!inputHash,
+  tienePasswordHash: !!persona.PasswordHash,
+  intentosActuales: persona.IntentosLogin
+});
 
+if (!crypto.timingSafeEqual(Buffer.from(inputHash), Buffer.from(persona.PasswordHash))) {
+  // Incrementar contador de intentos
+  const nuevosIntentos = (parseInt(persona.IntentosLogin) || 0) + 1;
+  console.log('Intento fallido número:', nuevosIntentos);
+
+  try {
       if (nuevosIntentos >= 3) {
-        return res.status(403).json({ 
-          error: "Cuenta bloqueada por 15 minutos debido a múltiples intentos fallidos." 
-        });
-      }
+          // Bloquear por 10 segundos
+          const bloqueoQuery = `
+              UPDATE Personas 
+              SET IntentosLogin = ${nuevosIntentos},
+                  BloqueoHasta = DATEADD(second, 10, GETDATE())
+              WHERE PersonaID = ${persona.PersonaID}
+          `;
+          
+          await sequelize.query(bloqueoQuery);
+          
+          return res.status(403).json({ 
+              error: "Cuenta bloqueada por 10 segundos debido a múltiples intentos fallidos.",
+              tiempoBloqueo: 10
+          });
+      } 
 
+      // Actualizar intentos y mostrar mensaje desde el primer intento
+      const updateQuery = `
+          UPDATE Personas 
+          SET IntentosLogin = ${nuevosIntentos}
+          WHERE PersonaID = ${persona.PersonaID}
+      `;
+      
+      await sequelize.query(updateQuery);
+      
+      // Mensaje para el primer intento también
+      const intentosRestantes = 3 - nuevosIntentos;
+      const mensaje = `Credenciales inválidas. Intento ${nuevosIntentos} de 3.${intentosRestantes > 0 ? ` Te ${intentosRestantes === 1 ? 'queda' : 'quedan'} ${intentosRestantes} ${intentosRestantes === 1 ? 'intento' : 'intentos'}.` : ''}`;
+      
       return res.status(401).json({ 
-        error: `Credenciales inválidas. Intentos restantes: ${3 - nuevosIntentos}` 
+          error: mensaje,
+          intentoActual: nuevosIntentos,
+          intentosRestantes: intentosRestantes
       });
-    }
 
+  } catch (updateError) {
+      console.error("Error al actualizar intentos:", updateError);
+      throw new Error("Error al actualizar el estado de la cuenta");
+  }
+}
     // Resetear intentos después de login exitoso
-    await sequelize.query(`
+    await sequelize.query(
+      `
       UPDATE Personas 
       SET IntentosLogin = 0, BloqueoHasta = NULL 
       WHERE PersonaID = :personaId
-    `, {
-      replacements: { personaId: persona.PersonaID }
-    });
+    `,
+      {
+        replacements: { personaId: persona.PersonaID },
+      }
+    );
 
     if (!process.env.JWT_SECRET) {
-      throw new Error('JWT_SECRET no está configurado');
+      throw new Error("JWT_SECRET no está configurado");
     }
 
     const token = jwt.sign(
@@ -176,7 +225,7 @@ const login = async (req, res) => {
     );
 
     console.log("Login exitoso");
-    
+
     res.json({
       token,
       user: {
@@ -186,13 +235,20 @@ const login = async (req, res) => {
         tipoUsuario: persona.TipoUsuario,
       },
     });
-
   } catch (error) {
-    console.error("Error en login:", error);
-    res.status(500).json({ error: "Error en el servidor" });
+    console.error("Error detallado en login:", error);
+    console.error("Stack trace:", error.stack);
+    return res.status(500).json({
+      error: "Error en el servidor",
+      mensaje:
+        process.env.NODE_ENV === "development" ? error.message : undefined,
+    });
   } finally {
-    // Cierra la clave simétrica con manejo de errores mejorado
-    await closeSymmetricKey();
+    try {
+      await closeSymmetricKey();
+    } catch (closeError) {
+      console.error("Error al cerrar la clave simétrica:", closeError);
+    }
   }
 };
 
