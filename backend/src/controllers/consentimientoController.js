@@ -1,4 +1,5 @@
 const { Consentimiento } = require('../models');
+const { sequelize } = require('../config/database'); // Agregar esta línea
 
 const crearConsentimiento = async (req, res) => {
     try {
@@ -51,14 +52,27 @@ const actualizarConsentimiento = async (req, res) => {
 
 const eliminarConsentimiento = async (req, res) => {
     try {
-        const consentimiento = await Consentimiento.findByPk(req.params.id);
+        const consentimientoId = req.params.id;
+
+        // Primero, eliminar los registros relacionados
+        await sequelize.query(`
+            DELETE FROM RegistroConsentimientos 
+            WHERE ConsentimientoID = :consentimientoId
+        `, {
+            replacements: { consentimientoId }
+        });
+
+        // Luego, eliminar el consentimiento
+        const consentimiento = await Consentimiento.findByPk(consentimientoId);
         if (!consentimiento) {
             return res.status(404).json({ error: 'Consentimiento no encontrado' });
         }
+
         await consentimiento.destroy();
         res.status(200).json({ message: 'Consentimiento eliminado correctamente' });
+
     } catch (error) {
-        console.error(error);
+        console.error('Error al eliminar consentimiento:', error);
         res.status(500).json({ error: 'Error al eliminar el consentimiento' });
     }
 };
