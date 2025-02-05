@@ -84,12 +84,32 @@ const crearPersona = async (req, res) => {
       return res.status(400).json({ error: "Todos los campos son obligatorios" });
     }
 
+  
+    await openSymmetricKey();
+    keyOpened = true;
+
+    // Verificar si ya existe un usuario con la misma identificación
+    const checkQuery = `
+      SELECT COUNT(*) as count
+      FROM Personas
+      WHERE CAST(DecryptByKey(Identificacion) AS NVARCHAR(20)) = :Identificacion
+    `;
+
+    const [checkResult] = await sequelize.query(checkQuery, {
+      replacements: { Identificacion },
+      type: sequelize.QueryTypes.SELECT,
+    });
+
+    if (checkResult.count > 0) {
+      return res.status(409).json({ 
+        error: "Ya existe un usuario registrado con esta identificación" 
+      });
+    }
+
     // Generar salt y hash para la contraseña
     const salt = generateSalt();
     const passwordHash = await deriveKey(Password, salt);
 
-    await openSymmetricKey();
-    keyOpened = true;
 
     // Query modificado para retornar el ID insertado
     const query = `

@@ -181,8 +181,6 @@ document.addEventListener("DOMContentLoaded", () => {
           submitButton.disabled = true;
           submitButton.textContent = "Registrando...";
 
-          console.log("Enviando datos al servidor:", formData); // Debug
-
           const response = await fetch("http://localhost:3000/api/personas", {
               method: "POST",
               headers: {
@@ -192,7 +190,12 @@ document.addEventListener("DOMContentLoaded", () => {
           });
 
           const data = await response.json();
-          console.log("Respuesta del servidor:", data); // Debug
+
+          if (response.status === 409) {
+            showError("Ya existe un usuario con esta identificación", "identificacionError");
+            document.getElementById("identificacion").focus();
+            return;
+        }
 
           if (response.ok) {
               // Guardar datos del usuario registrado
@@ -202,8 +205,7 @@ document.addEventListener("DOMContentLoaded", () => {
                   apellido: formData.Apellido
               };
 
-              console.log("Guardando en localStorage:", registroData); // Debug
-
+              
               localStorage.setItem('registroData', JSON.stringify(registroData));
 
               alert("Registro completado exitosamente. A continuación seleccione sus preferencias de consentimiento.");

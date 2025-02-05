@@ -136,11 +136,31 @@ function toggleFormInputs(disabled) {
   const passwordInput = document.getElementById('password');
   const togglePasswordButton = document.querySelector('.toggle-password');
   
+  if (identificacionInput) {
+    identificacionInput.addEventListener("input", function(e) {
+        // Remover cualquier carácter que no sea número
+        this.value = this.value.replace(/[^0-9]/g, '');
+        
+        // Limitar a 10 dígitos
+        if (this.value.length > 10) {
+            this.value = this.value.slice(0, 10);
+        }
+
+        // Validar y mostrar/ocultar mensaje de error
+        if (this.value.length > 0 && this.value.length !== 10) {
+            showError("La identificación debe tener 10 dígitos", "identificacionError");
+        } else {
+            hideError("identificacionError");
+        }
+    });
+
   identificacionInput.disabled = disabled;
   passwordInput.disabled = disabled;
   if (togglePasswordButton) {
       togglePasswordButton.disabled = disabled;
   }
+
+
 }
 
 // Modificar la función startBlockTimer
@@ -189,10 +209,16 @@ function validateForm() {
   const identificacion = document.getElementById("identificacion").value.trim();
   const password = document.getElementById("password").value;
 
+  // Validar identificación
   if (!identificacion) {
-    showError("La identificación es obligatoria", "identificacionError");
+    showError("La identificación es requerida", "identificacionError");
     isValid = false;
-  }
+} else if (!/^\d{10}$/.test(identificacion)) {
+    showError("La identificación debe tener exactamente 10 dígitos numéricos", "identificacionError");
+    isValid = false;
+} else {
+    hideError("identificacionError");
+}
 
   if (!password) {
     showError("La contraseña es obligatoria", "passwordError");
@@ -226,4 +252,6 @@ function showLoading(show) {
   submitButton.disabled = show;
   buttonText.style.display = show ? "none" : "inline-block";
   spinner.style.display = show ? "inline-block" : "none";
+}
+
 }
