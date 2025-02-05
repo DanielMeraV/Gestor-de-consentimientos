@@ -317,3 +317,15 @@ tr:hover {
     background-color: var(--primary-color);
     color: var(--white);
 }
+
+.btn-action.edit {
+    color: #ffc107;
+}
+
+.btn-action.delete {
+    color: #dc3545;
+}
+
+.btn-action {
+    margin: 0 5px;
+}

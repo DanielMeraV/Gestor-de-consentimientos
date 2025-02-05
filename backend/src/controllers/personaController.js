@@ -314,15 +314,27 @@ const actualizarPersona = async (req, res) => {
 
 const eliminarPersona = async (req, res) => {
   try {
-    const persona = await Persona.findByPk(req.params.id);
-    if (!persona) {
-      return res.status(404).json({ error: "Persona no encontrada" });
-    }
-    await persona.destroy();
-    res.status(200).json({ message: "Persona eliminada correctamente" });
+      const personaId = req.params.id;
+      
+      // Primero, eliminar los registros de consentimiento asociados
+      await sequelize.query(`
+          DELETE FROM RegistroConsentimientos 
+          WHERE PersonaID = :personaId
+      `, {
+          replacements: { personaId }
+      });
+
+      // Luego, eliminar la persona
+      const persona = await Persona.findByPk(personaId);
+      if (!persona) {
+          return res.status(404).json({ error: "Persona no encontrada" });
+      }
+      
+      await persona.destroy();
+      res.status(200).json({ message: "Persona eliminada correctamente" });
   } catch (error) {
-    console.error(error);
-    res.status(500).json({ error: "Error al eliminar la persona" });
+      console.error(error);
+      res.status(500).json({ error: "Error al eliminar la persona" });
   }
 };
 

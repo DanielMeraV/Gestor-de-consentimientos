@@ -1,7 +1,17 @@
 const API_URL = 'http://localhost:3000/api';
 
 const formatDate = (dateString) => {
-    return new Date(dateString).toLocaleDateString('es-ES');
+    if (!dateString) return 'No registrado';
+    const date = new Date(dateString);
+    if (isNaN(date.getTime())) return 'Fecha inválida';
+    
+    return new Intl.DateTimeFormat('es-ES', {
+        year: 'numeric',
+        month: '2-digit',
+        day: '2-digit',
+        hour: '2-digit',
+        minute: '2-digit'
+    }).format(date);
 };
 
 async function cargarDatosUsuario() {
@@ -144,6 +154,77 @@ function mostrarError(mensaje) {
     setTimeout(() => {
         mensajeElement.remove();
     }, 3000);
+}
+
+async function confirmarEliminarCuenta() {
+    try {
+        const confirmar = window.confirm('¿Está seguro que desea eliminar su cuenta? Esta acción no se puede deshacer y perderá todos sus datos.');
+        
+        if (confirmar) {
+            const token = localStorage.getItem('token');
+            const userData = JSON.parse(localStorage.getItem('userData'));
+
+            if (!token || !userData) {
+                window.location.href = '../../index.html';
+                return;
+            }
+
+            const response = await fetch(`${API_URL}/personas/${userData.id}`, {
+                method: 'DELETE',
+                headers: {
+                    'Authorization': `Bearer ${token}`
+                }
+            });
+
+            if (!response.ok) {
+                throw new Error('Error al eliminar la cuenta');
+            }
+
+            // Limpiar localStorage
+            localStorage.clear();
+            
+            // Mostrar mensaje y redirigir
+            alert('Cuenta eliminada exitosamente');
+            window.location.replace('../../index.html');
+        }
+    } catch (error) {
+        console.error('Error:', error);
+        alert('Error al eliminar la cuenta: ' + error.message);
+    }
+}
+
+async function eliminarCuenta() {
+    try {
+        const token = localStorage.getItem('token');
+        const userData = JSON.parse(localStorage.getItem('userData'));
+
+        if (!token || !userData) {
+            window.location.href = '../../auth/login.html';
+            return;
+        }
+
+        const response = await fetch(`${API_URL}/personas/${userData.id}`, {
+            method: 'DELETE',
+            headers: {
+                'Authorization': `Bearer ${token}`
+            }
+        });
+
+        if (!response.ok) {
+            throw new Error('Error al eliminar la cuenta');
+        }
+
+        // Limpiar localStorage y redirigir
+        localStorage.clear();
+        mostrarMensaje('Cuenta eliminada exitosamente', 'success');
+        setTimeout(() => {
+            window.location.href = '../../index.html';
+        }, 2000);
+
+    } catch (error) {
+        console.error('Error:', error);
+        mostrarMensaje('Error al eliminar la cuenta', 'error');
+    }
 }
 
 // Manejar el cierre de sesión

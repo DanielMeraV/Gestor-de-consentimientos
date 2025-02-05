@@ -20,6 +20,9 @@
                 <li class="nav-item active" data-section="users">
                     <i class="fas fa-users"></i> Usuarios Registrados
                 </li>
+                <li class="nav-item" data-section="consentimientos">
+                    <i class="fas fa-file-alt"></i> Gestión Consentimientos
+                </li>
                 <li class="nav-item" data-section="audit-personas">
                     <i class="fas fa-user-shield"></i> Auditoría Personas
                 </li>
@@ -69,7 +72,7 @@
                 </div>
             </div>
 
-            <!-- Content Sections -->
+            <!-- Sección Usuarios -->
             <div class="content-section active" id="users-section">
                 <div class="section-header">
                     <h2>Usuarios Registrados</h2>
@@ -95,6 +98,31 @@
                 </div>
             </div>
 
+            <!-- Sección Gestión de Consentimientos -->
+            <div class="content-section" id="consentimientos-section">
+                <div class="section-header">
+                    <h2>Gestión de Consentimientos</h2>
+                    <div class="search-bar">
+                        <input type="text" placeholder="Buscar consentimiento..." id="searchConsentimientos">
+                        <i class="fas fa-search"></i>
+                    </div>
+                </div>
+                <div class="table-container">
+                    <table id="consentimientosTable">
+                        <thead>
+                            <tr>
+                                <th>ID</th>
+                                <th>Nombre</th>
+                                <th>Descripción</th>
+                                <th>Acciones</th>
+                            </tr>
+                        </thead>
+                        <tbody></tbody>
+                    </table>
+                </div>
+            </div>
+
+            <!-- Auditoría Personas -->
             <div class="content-section" id="audit-personas-section">
                 <div class="section-header">
                     <h2>Auditoría de Personas</h2>
@@ -119,6 +147,7 @@
                 </div>
             </div>
 
+            <!-- Auditoría Consentimientos -->
             <div class="content-section" id="audit-consent-section">
                 <div class="section-header">
                     <h2>Auditoría de Consentimientos</h2>
@@ -167,6 +196,11 @@
                 </div>
             </form>
         </div>
+    </div>
+
+    <!-- Modal para Editar Consentimiento -->
+    <div id="editConsentimientoModal" class="modal">
+        <!-- El contenido se generará dinámicamente -->
     </div>
 
     <script src="../js/dashboardAdmin.js"></script>
